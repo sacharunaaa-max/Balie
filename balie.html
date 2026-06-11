@@ -1000,12 +1000,18 @@ function exportAll() {
 
 function buildExport(a) {
   const safeTitle = a.title ? a.title.replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0,40) : 'actividad';
+  // Incluir audios de cada paso
+  const stepsWithAudio = (a.steps || []).map(s => ({
+    ...s,
+    audios: s.audios || []
+  }));
   return {
     filename: safeTitle + '-' + a.id.slice(0,8) + '.json',
     data: {
-      id: a.id, title: a.title, objective: a.objective,
-      routes: a.routes || [], steps: a.steps || [],
-      errors: a.errors, emails: a.emails,
+      id: a.id, title: a.title, objective: a.objective, objective_en: a.objective_en || '', objective_nl: a.objective_nl || '',
+      routes: a.routes || [], steps: stepsWithAudio,
+      errors: a.errors, errors_en: a.errors_en || '', errors_nl: a.errors_nl || '',
+      emails: a.emails, emails_en: a.emails_en || '', emails_nl: a.emails_nl || '',
       createdAt: a.createdAt, updatedAt: a.updatedAt,
       audioFields: audioBlobs[a.id] || {},
       activityVideo: activityVideos[a.id] || null
