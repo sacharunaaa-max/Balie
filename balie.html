@@ -47,7 +47,17 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .route-chip .del{color:var(--red);cursor:pointer;margin-left:4px;font-weight:bold}
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600}
 .badge-count{background:rgba(63,185,80,0.15);color:var(--green)}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:12px 24px;border-radius:var(--radius);font-size:0.85rem;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:opacity 0.3s;max-width:90%}
+.recorder-bar{position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;border-top:2px solid var(--red);padding:12px 16px;display:none;align-items:center;justify-content:center;gap:16px;z-index:1000;flex-wrap:wrap}
+.recorder-bar.show{display:flex}
+.rec-dot{width:14px;height:14px;background:var(--red);border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%{opacity:1}50%{opacity:0.2}100%{opacity:1}}
+.rec-time{font-family:monospace;font-size:1.1rem;color:#fff;min-width:60px;text-align:center}
+.rec-label{color:var(--text2);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-btn{margin:0 !important;padding:8px 18px !important;font-size:0.9rem !important}
+.rec-pause-btn{background:#d29922 !important}
+.rec-stop-btn{background:var(--red) !important}
+.rec-resume-btn{background:var(--green) !important}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:12px 24px;border-radius:var(--radius);font-size:0.85rem;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:opacity 0.3s;max-width:90%}
 .toast-success{border-color:var(--green)}
 .toast-error{border-color:var(--red)}
 .toast-info{border-color:var(--accent)}
@@ -67,6 +77,16 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 <body>
 
 <div id="toast" class="toast hidden"></div>
+
+<!-- Recorder bar -->
+<div id="recorder-bar" class="recorder-bar">
+  <span class="rec-dot" id="rec-dot"></span>
+  <span class="rec-time" id="rec-time">00:00</span>
+  <span class="rec-label" id="rec-label"></span>
+  <button class="btn rec-btn rec-pause-btn" id="rec-pause-btn" onclick="pauseRecording()">⏸</button>
+  <button class="btn rec-btn rec-stop-btn" id="rec-stop-btn" onclick="stopRecording()">⏹</button>
+  <button class="btn rec-btn rec-resume-btn hidden" id="rec-resume-btn" onclick="resumeRecording()">▶</button>
+</div>
 
 <!-- Language bar -->
 <div class="lang-bar" id="lang-bar">
@@ -169,7 +189,6 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 // ─── STATE ───
 let activities = [];
 let currentId = null;
-let isRecording = false;
 let audioBlobs = {};
 let activityVideos = {};
 let currentLang = 'es';
@@ -222,8 +241,8 @@ const L = {
     toastPhotoSaved: '📸 Foto guardada',
     toastError: 'Error: {msg}',
     toastFormatError: 'Formato no reconocido',
-    toastRec: '🔴 Grabando... hablá claro. Presioná DETENER.',
-    toastRecVideo: '🔴 Grabando video... presioná DETENER al terminar.',
+    toastRec: '🔴 Grabando audio...',
+    toastRecVideo: '🎥 Grabando video...',
     stopBtn: '⏹ DETENER GRABACIÓN',
     stepPlaceholder: 'Escribí el paso... o usá 🎤 para grabarlo con audio',
     confirmDelete: '¿Eliminar esta actividad?',
@@ -276,8 +295,8 @@ const L = {
     toastPhotoSaved: '📸 Photo saved',
     toastError: 'Error: {msg}',
     toastFormatError: 'Unrecognized format',
-    toastRec: '🔴 Recording... speak clearly. Press STOP.',
-    toastRecVideo: '🔴 Recording video... press STOP when finished.',
+    toastRec: '🔴 Recording audio...',
+    toastRecVideo: '🎥 Recording video...',
     stopBtn: '⏹ STOP RECORDING',
     stepPlaceholder: 'Write the step... or use 🎤 to record it with audio',
     confirmDelete: 'Delete this activity?',
@@ -330,8 +349,8 @@ const L = {
     toastPhotoSaved: '📸 Foto opgeslagen',
     toastError: 'Fout: {msg}',
     toastFormatError: 'Formaat niet herkend',
-    toastRec: '🔴 Opnemen... spreek duidelijk. Druk op STOP.',
-    toastRecVideo: '🔴 Video-opname... druk op STOP als je klaar bent.',
+    toastRec: '🔴 Audio opnemen...',
+    toastRecVideo: '🎥 Video opnemen...',
     stopBtn: '⏹ STOP OPNEMEN',
     stepPlaceholder: 'Schrijf de stap... of gebruik 🎤 om audio op te nemen',
     confirmDelete: 'Deze activiteit verwijderen?',
@@ -642,17 +661,96 @@ function removeStepPhoto(stepIdx, photoIdx) {
   renderSteps(a);
 }
 
+// ─── RECORDER STATE ───
+let _recState = { active: false, paused: false, stream: null, mr: null, chunks: [],
+  recognition: null, transcript: '', callback: null, startTime: 0, timerInterval: null,
+  mediaType: 'audio', label: '' };
+
+function showRecorderBar() {
+  document.getElementById('recorder-bar').classList.add('show');
+  document.getElementById('rec-time').textContent = '00:00';
+  document.getElementById('rec-pause-btn').classList.remove('hidden');
+  document.getElementById('rec-resume-btn').classList.add('hidden');
+  document.getElementById('rec-stop-btn').classList.remove('hidden');
+}
+
+function hideRecorderBar() {
+  document.getElementById('recorder-bar').classList.remove('show');
+  if (_recState.timerInterval) { clearInterval(_recState.timerInterval); _recState.timerInterval = null; }
+}
+
+function updateRecTime() {
+  if (!_recState.startTime) return;
+  const elapsed = Math.floor((Date.now() - _recState.startTime) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('rec-time').textContent = m + ':' + s;
+}
+
+function pauseRecording() {
+  if (!_recState.active || _recState.paused) return;
+  _recState.paused = true;
+  if (_recState.mr && _recState.mr.state === 'recording') _recState.mr.pause();
+  document.getElementById('rec-pause-btn').classList.add('hidden');
+  document.getElementById('rec-resume-btn').classList.remove('hidden');
+  document.getElementById('rec-dot').style.opacity = '0.3';
+}
+
+function resumeRecording() {
+  if (!_recState.active || !_recState.paused) return;
+  _recState.paused = false;
+  if (_recState.mr && _recState.mr.state === 'paused') _recState.mr.resume();
+  document.getElementById('rec-pause-btn').classList.remove('hidden');
+  document.getElementById('rec-resume-btn').classList.add('hidden');
+  document.getElementById('rec-dot').style.opacity = '1';
+}
+
+function stopRecording() {
+  if (!_recState.active) return;
+  if (_recState.recognition) { try { _recState.recognition.stop(); } catch(e) {} }
+  if (_recState.mr && _recState.mr.state !== 'inactive') {
+    try { _recState.mr.stop(); } catch(e) {}
+  }
+  // mr.onstop will handle the rest
+}
+
+function finalizeRecording() {
+  hideRecorderBar();
+  _recState.active = false;
+  _recState.paused = false;
+  if (_recState.timerInterval) { clearInterval(_recState.timerInterval); _recState.timerInterval = null; }
+  if (_recState.stream) { _recState.stream.getTracks().forEach(t => t.stop()); _recState.stream = null; }
+  const blob = new Blob(_recState.chunks, { type: _recState.mr ? _recState.mr.mimeType : 'audio/webm' });
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    const transcript = _recState.transcript;
+    _recState.chunks = [];
+    _recState.transcript = '';
+    if (_recState.callback) _recState.callback(blob, dataUrl, transcript);
+    if (transcript) toastLang('toastTranscribed', 'success', { text: transcript.slice(0,60) + (transcript.length > 60 ? '...' : '') });
+    else toastLang('toastAudioSaved', 'success');
+    _recState.callback = null;
+  };
+  reader.readAsDataURL(blob);
+}
+
 // ─── AUDIO RECORDING ───
 function startRecording(callback) {
-  if (isRecording) return;
+  if (_recState.active) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     toastLang('toastError', 'error', { msg: 'No microphone access' });
     return;
   }
-  isRecording = true;
+  _recState.active = true;
+  _recState.paused = false;
+  _recState.callback = callback;
+  _recState.chunks = [];
+  _recState.transcript = '';
+  _recState.mediaType = 'audio';
+  
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
-  let transcript = '';
   if (SpeechRecognition) {
     try {
       recognition = new SpeechRecognition();
@@ -662,62 +760,42 @@ function startRecording(callback) {
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
-            transcript += (transcript ? ' ' : '') + event.results[i][0].transcript;
+            _recState.transcript += (_recState.transcript ? ' ' : '') + event.results[i][0].transcript;
           }
         }
       };
       recognition.start();
-    } catch(e) { recognition = null; }
+      _recState.recognition = recognition;
+    } catch(e) { _recState.recognition = null; }
   }
-  toastLang('toastRec', 'info');
+  
+  showRecorderBar();
+  document.getElementById('rec-label').textContent = t('toastRec');
+  _recState.startTime = Date.now();
+  _recState.timerInterval = setInterval(updateRecTime, 200);
+  
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
+      _recState.stream = stream;
       const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
                    MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
       const mr = new MediaRecorder(stream, { mimeType: mime });
-      const chunks = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      mr.onstop = () => {
-        isRecording = false;
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-        const blob = new Blob(chunks, { type: mr.mimeType });
-        const reader = new FileReader();
-        reader.onload = () => {
-          stream.getTracks().forEach(t => t.stop());
-          callback(blob, reader.result, transcript);
-          if (transcript) toastLang('toastTranscribed', 'success', { text: transcript.slice(0,60) + (transcript.length > 60 ? '...' : '') });
-          else toastLang('toastAudioSaved', 'success');
-        };
-        reader.readAsDataURL(blob);
-      };
+      _recState.mr = mr;
+      mr.ondataavailable = e => { if (e.data.size > 0) _recState.chunks.push(e.data); };
+      mr.onstop = () => { finalizeRecording(); };
       mr.start();
-      setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, 120000);
-      window.__stopRecording = () => { if (mr.state === 'recording') mr.stop(); };
-      showStopBtn();
+      setTimeout(() => { if (_recState.active && mr.state === 'recording') { stopRecording(); } }, 300000);
     })
     .catch(err => {
-      isRecording = false;
-      if (recognition) { try { recognition.stop(); } catch(e) {} }
+      _recState.active = false;
+      hideRecorderBar();
+      if (_recState.recognition) { try { _recState.recognition.stop(); } catch(e) {} }
       toastLang('toastError', 'error', { msg: err.message });
     });
 }
 
-function showStopBtn() {
-  const old = document.getElementById('stop-rec-btn');
-  if (old) old.remove();
-  const btn = document.createElement('button');
-  btn.id = 'stop-rec-btn';
-  btn.className = 'btn btn-red';
-  btn.style.position = 'fixed'; btn.style.bottom = '100px'; btn.style.left = '50%';
-  btn.style.transform = 'translateX(-50%)'; btn.style.zIndex = '999';
-  btn.style.fontSize = '1rem'; btn.style.padding = '12px 24px';
-  btn.textContent = t('stopBtn');
-  btn.onclick = () => { if (window.__stopRecording) { window.__stopRecording(); window.__stopRecording = null; } btn.remove(); };
-  document.body.appendChild(btn);
-}
-
 function recordField(field) {
-  if (isRecording) return;
+  if (_recState.active) return;
   const a = getActivity(currentId);
   if (!a) return;
   startRecording((blob, dataUrl, transcript) => {
@@ -744,7 +822,7 @@ function playFieldAudio(field) {
 }
 
 function recordStep(idx) {
-  if (isRecording) return;
+  if (_recState.active) return;
   const a = getActivity(currentId);
   if (!a || !a.steps || !a.steps[idx]) return;
   startRecording((blob, dataUrl, transcript) => {
@@ -767,42 +845,44 @@ function playStepAudio(stepIdx, audioIdx) {
 
 // ─── ACTIVITY VIDEO ───
 function recordActivityVideo() {
-  if (isRecording) return;
+  if (_recState.active) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     toastLang('toastError', 'error', { msg: 'No camera access' });
     return;
   }
-  isRecording = true;
-  toastLang('toastRecVideo', 'info');
+  _recState.active = true;
+  _recState.paused = false;
+  _recState.chunks = [];
+  _recState.mediaType = 'video';
+  _recState.callback = (blob, dataUrl) => {
+    if (!currentId) return;
+    activityVideos[currentId] = dataUrl;
+    saveState();
+    updateVideoIndicator();
+    toastLang('toastVideoSaved', 'success');
+  };
+  
+  showRecorderBar();
+  document.getElementById('rec-label').textContent = t('toastRecVideo');
+  _recState.startTime = Date.now();
+  _recState.timerInterval = setInterval(updateRecTime, 200);
+  
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 } }, audio: true })
     .then(stream => {
+      _recState.stream = stream;
       const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' :
                    MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' :
                    MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
       const mr = new MediaRecorder(stream, { mimeType: mime });
-      const chunks = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      mr.onstop = () => {
-        isRecording = false;
-        const blob = new Blob(chunks, { type: mr.mimeType });
-        const reader = new FileReader();
-        reader.onload = () => {
-          stream.getTracks().forEach(t => t.stop());
-          if (!currentId) return;
-          activityVideos[currentId] = reader.result;
-          saveState();
-          updateVideoIndicator();
-          toastLang('toastVideoSaved', 'success');
-        };
-        reader.readAsDataURL(blob);
-      };
+      _recState.mr = mr;
+      mr.ondataavailable = e => { if (e.data.size > 0) _recState.chunks.push(e.data); };
+      mr.onstop = () => { finalizeRecording(); };
       mr.start();
-      setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, 300000);
-      window.__stopRecording = () => { if (mr.state === 'recording') mr.stop(); };
-      showStopBtn();
+      setTimeout(() => { if (_recState.active && mr.state === 'recording') { stopRecording(); } }, 300000);
     })
     .catch(err => {
-      isRecording = false;
+      _recState.active = false;
+      hideRecorderBar();
       toastLang('toastError', 'error', { msg: err.message });
     });
 }
