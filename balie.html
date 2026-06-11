@@ -422,13 +422,83 @@ function toastLang(key, type, replace) {
 }
 
 // ─── INIT ───
+const MODELOS_INICIALES = {"ids":["modelo-cmr","modelo-reubicacion","modelo-retouren"]};
+
 function init() {
   loadState();
+  // Cargar modelos de ejemplo si no hay actividades
+  if (activities.length === 0) {
+    loadModelosIniciales();
+  }
   // Load saved language
   const saved = localStorage.getItem('balie-lang');
   if (saved && L[saved]) setLang(saved);
   else setLang('es');
   renderList();
+}
+
+function loadModelosIniciales() {
+  const modelos = [
+    {
+      "id": "modelo-cmr",
+      "title": "Impresión de CMR para Bouwmarkt (EMBALLAGE)",
+      "objective": "Entregar los CMR a las tiendas Bouwmarkt para que puedan enviar material de embalaje a través de Intergamma. Sin estos CMR, las tiendas no pueden retirar el embalaje.",
+      "routes": ["\\\\server\\archivos\\CMR\\", "\\\\server\\archivos\\RET"],
+      "steps": [
+        {"text": "Revisar el correo electrónico. Filtrar los mensajes que contengan la palabra \"CMR\" en el asunto o cuerpo.", "text_en": "Check the email. Filter messages that contain the word \"CMR\" in the subject or body.", "text_nl": "Controleer de e-mail. Filter berichten die het woord \"CMR\" bevatten in het onderwerp of de inhoud."},
+        {"text": "Abrir el archivo RET desde la carpeta de archivos del sistema.", "text_en": "Open the RET file from the system archives folder.", "text_nl": "Open het RET-bestand vanuit de systeemarchiefmap."},
+        {"text": "Modificar únicamente el encabezado del documento (dirección). NO copiar y pegar, porque si se copia, el archivo se daña.", "text_en": "Modify only the document header (address). DO NOT copy and paste, as it will corrupt the file.", "text_nl": "Wijzig alleen de documentkoptekst (adres). NIET kopiëren en plakken, omdat het bestand dan beschadigd raakt."},
+        {"text": "Abrir el programa de impresión de CMR.", "text_en": "Open the CMR printing program.", "text_nl": "Open het CMR-printprogramma."},
+        {"text": "1 CMR = 4 copias. Cargar el audio de Jay para referencia.", "text_en": "1 CMR = 4 copies. Load Jay's audio for reference.", "text_nl": "1 CMR = 4 kopieën. Laad Jay's audio ter referentie."},
+        {"text": "Empaquetar las copias en paquetes y anotar la fecha de creación en cada paquete.", "text_en": "Bundle the copies into packs and write the creation date on each pack.", "text_nl": "Bind de kopieën in pakketten en noteer de aanmaakdatum op elk pakket."}
+      ],
+      "errors": "⚠️ Usar SOLO la impresora NLTIEGNP01007_CMR.\n⚠️ El orden del papel debe ser: ROJO primero (página 1), NEGRO último (página 4).\n⚠️ No copiar y pegar en el documento RET — se daña el archivo.",
+      "errors_en": "⚠️ Use ONLY the NLTIEGNP01007_CMR printer.\n⚠️ Paper order: RED first (page 1), BLACK last (page 4).\n⚠️ Do not copy and paste in the RET document — it corrupts the file.",
+      "errors_nl": "⚠️ Gebruik ALLEEN de printer NLTIEGNP01007_CMR.\n⚠️ Papiervolgorde: ROOD eerst (pagina 1), ZWART als laatste (pagina 4).\n⚠️ Niet kopiëren en plakken in het RET-document — het bestand raakt beschadigd.",
+      "emails": "Filtrar en Outlook por asunto: \"CMR\"",
+      "emails_en": "Filter in Outlook by subject: \"CMR\"",
+      "emails_nl": "Filter in Outlook op onderwerp: \"CMR\"",
+      "createdAt": "2026-06-11T09:30:00.000Z",
+      "updatedAt": "2026-06-11T09:50:00.000Z"
+    },
+    {
+      "id": "modelo-reubicacion",
+      "title": "Reubicación de stock en localizaciones",
+      "objective": "Mover stock de una ubicación llena a un espacio vacío disponible en el almacén.",
+      "routes": [],
+      "steps": [
+        {"text": "Localizar el STGE completo. Copiar el código de la tienda actual (\"Current DIY store\"). Después, deseleccionar esa ubicación.", "text_en": "Find the full STGE location. Copy the current DIY store code. Then deselect that location.", "text_nl": "Zoek de volledige STGE-locatie. Kopieer de huidige DIY-winkelcode. Deselecteer die locatie."},
+        {"text": "Buscar un espacio vacío marcado como \"NOTINUSE\". Ir a ACTIONS y presionar Edit.", "text_en": "Find an empty slot marked as \"NOTINUSE\". Go to ACTIONS and press Edit.", "text_nl": "Zoek een lege plek gemarkeerd als \"NOTINUSE\". Ga naar ACTIONS en druk op Edit."},
+        {"text": "En la pantalla de edición, presionar el campo \"Current DIY store\". Se abre una ventana emergente con un icono de filtro para buscar la tienda.", "text_en": "In the edit screen, press the \"Current DIY store\" field. A popup opens with a filter icon to search for the store.", "text_nl": "Druk in het bewerkingsscherm op het veld \"Current DIY store\". Er verschijnt een pop-up met een filterpictogram om de winkel te zoeken."}
+      ],
+      "errors": "","errors_en": "","errors_nl": "","emails": "","emails_en": "","emails_nl": "",
+      "createdAt": "2026-06-11T09:35:00.000Z",
+      "updatedAt": "2026-06-11T09:50:00.000Z"
+    },
+    {
+      "id": "modelo-retouren",
+      "title": "RETOUREN PROCEDURE (Devoluciones)",
+      "objective": "Gestionar los materiales que llegan sin SSCC (código de barras/logística) y deben ser procesados como devolución.",
+      "routes": [],
+      "steps": [
+        {"text": "Identificar cuál es el proveedor (suplier) y el motivo por el que está en retouren (devoluciones).", "text_en": "Identify which supplier it is and the reason why it is in retouren (returns).", "text_nl": "Identificeer welke leverancier het is en de reden waarom het in retouren staat."},
+        {"text": "Escribir en la pegatina amarilla el motivo de RETOUREN y el nombre del proveedor. Pegarla donde corresponda.", "text_en": "Write the RETOUREN reason and the supplier name on the yellow sticker. Stick it in the appropriate place.", "text_nl": "Schrijf de RETOUREN-rede en de leveranciersnaam op de gele sticker. Plak deze op de juiste plek."},
+        {"text": "Anotar la cantidad, tipo de material y proveedor para escribir el email correspondiente.", "text_en": "Note down the quantity, material type and supplier to write the corresponding email.", "text_nl": "Noteer de hoeveelheid, het materiaaltype en de leverancier om de bijbehorende e-mail te schrijven."},
+        {"text": "Mover el material al lugar predeterminado para RETOUREN en el almacén.", "text_en": "Move the material to the designated RETOUREN location in the warehouse.", "text_nl": "Verplaats het materiaal naar de aangewezen RETOUREN-locatie in het magazijn."},
+        {"text": "Enviar email a las personas que ya tienen las direcciones guardadas.", "text_en": "Send an email to the people whose addresses are already saved.", "text_nl": "Stuur een e-mail naar de personen van wie de adressen al zijn opgeslagen."}
+      ],
+      "errors": "⚠️ MERCADERÍA BOSCH: Tratamiento especial. NO debe salir del edificio 6.\nTomar fotografías de los códigos pegados y enviar email a las personas correspondientes.",
+      "errors_en": "⚠️ BOSCH GOODS: Special treatment. MUST NOT leave building 6.\nTake photos of the attached codes and send an email to the relevant people.",
+      "errors_nl": "⚠️ BOSCH GOEDEREN: Speciale behandeling. MAG gebouw 6 NIET verlaten.\nMaak foto's van de bijgevoegde codes en stuur een e-mail naar de juiste personen.",
+      "emails": "","emails_en": "","emails_nl": "",
+      "createdAt": "2026-06-11T09:40:00.000Z",
+      "updatedAt": "2026-06-11T09:50:00.000Z"
+    }
+  ];
+  for (const m of modelos) {
+    activities.push(m);
+  }
+  saveState();
 }
 
 // ─── PERSISTENCE ───
