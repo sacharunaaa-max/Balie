@@ -103,6 +103,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6">
       <button class="btn btn-ghost btn-sm" onclick="importData()"><span data-i="importBtn">📥 Import</span></button>
       <button class="btn btn-green btn-sm" onclick="exportAll()"><span data-i="exportAllBtn">📤 Export all</span></button>
+      <button class="btn btn-yellow btn-sm" onclick="syncAll()"><span data-i="syncAllBtn">☁️ Sync all</span></button>
     </div>
   </div>
   <div id="activity-list"></div>
@@ -115,6 +116,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <button class="btn btn-ghost btn-sm" onclick="backToList()"><span data-i="backBtn">← Back</span></button>
     <div class="gap-6">
       <button class="btn btn-ghost btn-sm" onclick="exportOne()"><span data-i="exportBtn">📄 Export</span></button>
+      <button class="btn btn-green btn-sm" onclick="syncCurrent()"><span data-i="syncBtn">☁️ Subir</span></button>
       <button class="btn btn-sm btn-primary" onclick="saveCurrent()"><span data-i="saveBtn">💾 Save</span></button>
     </div>
   </div>
@@ -200,9 +202,11 @@ const L = {
     menuSubtitle: 'Capturador de Procedimientos',
     importBtn: '📥 Importar',
     exportAllBtn: '📤 Exportar todo',
+    syncAllBtn: '☁️ Subir todas',
     newActBtn: '➕ NUEVA ACTIVIDAD',
     backBtn: '← Volver',
     exportBtn: '📄 Exportar',
+    syncBtn: '☁️ Subir',
     saveBtn: '💾 Guardar',
     titlePlaceholder: 'Nombre de la actividad (ej: Change Position)',
     objTitle: '🎯 Objetivo',
@@ -243,6 +247,8 @@ const L = {
     toastFormatError: 'Formato no reconocido',
     toastRec: '🔴 Grabando audio...',
     toastRecVideo: '🎥 Grabando video...',
+    toastSynced: '☁️ Subido: {name}',
+    toastSyncError: '☁️ Error al subir. ¿La PC está encendida?'
     stopBtn: '⏹ DETENER GRABACIÓN',
     stepPlaceholder: 'Escribí el paso... o usá 🎤 para grabarlo con audio',
     confirmDelete: '¿Eliminar esta actividad?',
@@ -254,9 +260,11 @@ const L = {
     menuSubtitle: 'Procedure Recorder',
     importBtn: '📥 Import',
     exportAllBtn: '📤 Export all',
+    syncAllBtn: '☁️ Sync all',
     newActBtn: '➕ NEW ACTIVITY',
     backBtn: '← Back',
     exportBtn: '📄 Export',
+    syncBtn: '☁️ Upload',
     saveBtn: '💾 Save',
     titlePlaceholder: 'Activity name (e.g. Change Position)',
     objTitle: '🎯 Objective',
@@ -297,6 +305,8 @@ const L = {
     toastFormatError: 'Unrecognized format',
     toastRec: '🔴 Recording audio...',
     toastRecVideo: '🎥 Recording video...',
+    toastSynced: '☁️ Synced: {name}',
+    toastSyncError: '☁️ Sync error. Is the PC on?'
     stopBtn: '⏹ STOP RECORDING',
     stepPlaceholder: 'Write the step... or use 🎤 to record it with audio',
     confirmDelete: 'Delete this activity?',
@@ -308,9 +318,11 @@ const L = {
     menuSubtitle: 'Procedure-opnemer',
     importBtn: '📥 Importeren',
     exportAllBtn: '📤 Alles exporteren',
+    syncAllBtn: '☁️ Alles uploaden',
     newActBtn: '➕ NIEUWE ACTIVITEIT',
     backBtn: '← Terug',
     exportBtn: '📄 Exporteren',
+    syncBtn: '☁️ Uploaden',
     saveBtn: '💾 Opslaan',
     titlePlaceholder: 'Activiteitnaam (bijv. Change Position)',
     objTitle: '🎯 Doelstelling',
@@ -351,6 +363,8 @@ const L = {
     toastFormatError: 'Formaat niet herkend',
     toastRec: '🔴 Audio opnemen...',
     toastRecVideo: '🎥 Video opnemen...',
+    toastSynced: '☁️ Geüpload: {name}',
+    toastSyncError: '☁️ Uploadfout. Staat de pc aan?'
     stopBtn: '⏹ STOP OPNEMEN',
     stepPlaceholder: 'Schrijf de stap... of gebruik 🎤 om audio op te nemen',
     confirmDelete: 'Deze activiteit verwijderen?',
@@ -1004,6 +1018,32 @@ function downloadFile(name, content, mime) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = name; a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── SYNC (subir a PC / nube) ───
+function syncCurrent() {
+  const a = getActivity(currentId);
+  if (!a) return;
+  const data = buildExport(a);
+  syncToServer(data.data.title || 'actividad', JSON.stringify(data.data, null, 2));
+}
+
+function syncAll() {
+  if (activities.length === 0) { toastLang('toastNoActivities', 'error'); return; }
+  const all = activities.map(a => buildExport(a).data);
+  const payload = JSON.stringify({ exportedAt: new Date().toISOString(), count: all.length, activities: all }, null, 2);
+  syncToServer('todas-las-actividades', payload);
+}
+
+function syncToServer(name, jsonData) {
+  fetch('/__openclaw__/webhook/balie-sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, data: jsonData })
+  })
+  .then(r => { if (r.ok) toastLang('toastSynced', 'success', { name: name.slice(0,30) });
+    else toastLang('toastSyncError', 'error'); })
+  .catch(() => toastLang('toastSyncError', 'error'));
 }
 
 // ─── IMPORT ───
