@@ -1036,14 +1036,31 @@ function syncAll() {
 }
 
 function syncToServer(name, jsonData) {
-  fetch('/__openclaw__/webhook/balie-sync', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, data: jsonData })
-  })
-  .then(r => { if (r.ok) toastLang('toastSynced', 'success', { name: name.slice(0,30) });
-    else toastLang('toastSyncError', 'error'); })
-  .catch(() => toastLang('toastSyncError', 'error'));
+  // Intentar enviar al servidor local (PC del usuario)
+  const servers = [
+    'http://192.168.178.38:18999',  // IP local de la PC
+    'http://localhost:18999'
+  ];
+  
+  function tryServer(idx) {
+    if (idx >= servers.length) {
+      toastLang('toastSyncError', 'error');
+      return;
+    }
+    fetch(servers[idx], {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, data: jsonData })
+    })
+    .then(r => {
+      if (r.ok) toastLang('toastSynced', 'success', { name: name.slice(0,30) });
+      else tryServer(idx + 1);
+    })
+    .catch(() => tryServer(idx + 1));
+  }
+  
+  tryServer(0);
 }
 
 // ─── IMPORT ───
