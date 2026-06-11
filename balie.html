@@ -1036,10 +1036,10 @@ function syncAll() {
 }
 
 function syncToServer(name, jsonData) {
+  // Intentar enviar al servidor local (PC del usuario)
   const servers = [
-    'http://192.168.178.38:18999',
-    'http://localhost:18999',
-    'http://bore.pub:15748'
+    'http://192.168.178.38:18999',  // IP local de la PC
+    'http://localhost:18999'
   ];
   
   function tryServer(idx) {
