@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BALIE — Procedimientos Modelo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--radius:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:12px;padding-bottom:60px;max-width:900px;margin:0 auto}
+h1{font-size:1.5rem;margin-bottom:4px}
+.subtitle{color:var(--text2);font-size:0.9rem;margin-bottom:16px}
+.lang-bar{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.lang-btn{background:var(--card);border:1px solid var(--border);color:var(--text2);padding:5px 18px;border-radius:20px;font-size:0.85rem;cursor:pointer}
+.lang-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(88,166,255,0.1)}
+.actividad{margin-bottom:24px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.act-header{background:var(--card);padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.act-header h2{font-size:1.1rem;font-weight:600}
+.act-header .arrow{color:var(--text2);transition:transform 0.2s;font-size:1.2rem}
+.act-header.open .arrow{transform:rotate(180deg)}
+.act-body{padding:16px;display:none}
+.act-body.open{display:block}
+.obj-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:0.9rem;line-height:1.5}
+.obj-box .label{color:var(--accent);font-weight:600;display:block;margin-bottom:4px}
+.route-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);padding:3px 10px;border-radius:16px;font-size:0.75rem;font-family:monospace;color:var(--green);margin:2px}
+.step{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;background:var(--bg)}
+.step .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(63,185,80,0.15);color:var(--green);font-size:0.75rem;font-weight:600;margin-right:8px;flex-shrink:0}
+.step .text{font-size:0.88rem;line-height:1.5;display:inline}
+.errors-box{background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);border-radius:var(--radius);padding:10px 12px;margin-top:12px;font-size:0.85rem;line-height:1.6;white-space:pre-wrap}
+.emails-box{background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.3);border-radius:var(--radius);padding:10px 12px;margin-top:8px;font-size:0.85rem}
+.footer{text-align:center;color:var(--text2);font-size:0.8rem;margin-top:30px;padding:20px}
+</style>
+</head>
+<body>
+
+<h1>📋 BALIE</h1>
+<p class="subtitle">Procedimientos modelo — Intergamma</p>
+
+<div class="lang-bar" id="lang-bar">
+  <button class="lang-btn active" onclick="setLang('es')">🇪🇸 Español</button>
+  <button class="lang-btn" onclick="setLang('en')">🇬🇧 English</button>
+  <button class="lang-btn" onclick="setLang('nl')">🇳🇱 Nederlands</button>
+</div>
+
+<div id="actividades"></div>
+
+<div class="footer">BALIE — Procedure Recorder</div>
+
+<script>
+const DATA = [
+  {
+    id: "cmr",
+    title: { es: "Impresión de CMR para Bouwmarkt (EMBALLAGE)", en: "CMR Printing for Bouwmarkt (EMBALLAGE)", nl: "CMR Afdrukken voor Bouwmarkt (EMBALLAGE)" },
+    objective: { es: "Entregar los CMR a las tiendas Bouwmarkt para que puedan enviar material de embalaje a través de Intergamma. Sin estos CMR, las tiendas no pueden retirar el embalaje.", en: "Deliver CMR documents to Bouwmarkt stores so they can send packaging materials via Intergamma. Without these CMRs, stores cannot collect packaging.", nl: "CMR-documenten leveren aan Bouwmarkt-winkels zodat ze verpakkingsmateriaal via Intergamma kunnen versturen. Zonder deze CMR's kunnen winkels geen verpakking ophalen." },
+    routes: ["\\\\server\\archivos\\CMR\\", "\\\\server\\archivos\\RET"],
+    steps: [
+      { es: "Revisar el correo electrónico. Filtrar los mensajes que contengan la palabra \"CMR\" en el asunto o cuerpo.", en: "Check the email. Filter messages that contain the word \"CMR\" in the subject or body.", nl: "Controleer de e-mail. Filter berichten die het woord \"CMR\" bevatten in het onderwerp of de inhoud." },
+      { es: "Abrir el archivo RET desde la carpeta de archivos del sistema.", en: "Open the RET file from the system archives folder.", nl: "Open het RET-bestand vanuit de systeemarchiefmap." },
+      { es: "Modificar únicamente el encabezado del documento (dirección). NO copiar y pegar, porque si se copia, el archivo se daña.", en: "Modify only the document header (address). DO NOT copy and paste, as it will corrupt the file.", nl: "Wijzig alleen de documentkoptekst (adres). NIET kopiëren en plakken, omdat het bestand dan beschadigd raakt." },
+      { es: "Abrir el programa de impresión de CMR.", en: "Open the CMR printing program.", nl: "Open het CMR-printprogramma." },
+      { es: "1 CMR = 4 copias. Cargar el audio de Jay para referencia.", en: "1 CMR = 4 copies. Load Jay's audio for reference.", nl: "1 CMR = 4 kopieën. Laad Jay's audio ter referentie." },
+      { es: "Empaquetar las copias en paquetes y anotar la fecha de creación en cada paquete.", en: "Bundle the copies into packs and write the creation date on each pack.", nl: "Bind de kopieën in pakketten en noteer de aanmaakdatum op elk pakket." }
+    ],
+    errors: { es: "⚠️ Usar SOLO la impresora NLTIEGNP01007_CMR.\n⚠️ El orden del papel debe ser: ROJO primero (página 1), NEGRO último (página 4).\n⚠️ No copiar y pegar en el documento RET — se daña el archivo.", en: "⚠️ Use ONLY the NLTIEGNP01007_CMR printer.\n⚠️ Paper order: RED first (page 1), BLACK last (page 4).\n⚠️ Do not copy and paste in the RET document — it corrupts the file.", nl: "⚠️ Gebruik ALLEEN de printer NLTIEGNP01007_CMR.\n⚠️ Papiervolgorde: ROOD eerst (pagina 1), ZWART als laatste (pagina 4).\n⚠️ Niet kopiëren en plakken in het RET-document — het bestand raakt beschadigd." },
+    emails: { es: "Filtrar en Outlook por asunto: \"CMR\"", en: "Filter in Outlook by subject: \"CMR\"", nl: "Filter in Outlook op onderwerp: \"CMR\"" }
+  },
+  {
+    id: "reubicacion",
+    title: { es: "Reubicación de stock en localizaciones", en: "Stock Relocation in Locations", nl: "Voorraad verplaatsen naar locaties" },
+    objective: { es: "Mover stock de una ubicación llena a un espacio vacío disponible en el almacén.", en: "Move stock from a full location to an available empty space in the warehouse.", nl: "Verplaats voorraad van een volle locatie naar een beschikbare lege ruimte in het magazijn." },
+    routes: [],
+    steps: [
+      { es: "Localizar el STGE completo. Copiar el código de la tienda actual (\"Current DIY store\"). Después, deseleccionar esa ubicación.", en: "Find the full STGE location. Copy the current DIY store code. Then deselect that location.", nl: "Zoek de volledige STGE-locatie. Kopieer de huidige DIY-winkelcode. Deselecteer die locatie." },
+      { es: "Buscar un espacio vacío marcado como \"NOTINUSE\". Ir a ACTIONS y presionar Edit.", en: "Find an empty slot marked as \"NOTINUSE\". Go to ACTIONS and press Edit.", nl: "Zoek een lege plek gemarkeerd als \"NOTINUSE\". Ga naar ACTIONS en druk op Edit." },
+      { es: "En la pantalla de edición, presionar el campo \"Current DIY store\". Se abre una ventana emergente con un icono de filtro para buscar la tienda.", en: "In the edit screen, press the \"Current DIY store\" field. A popup opens with a filter icon to search for the store.", nl: "Druk in het bewerkingsscherm op het veld \"Current DIY store\". Er verschijnt een pop-up met een filterpictogram om de winkel te zoeken." }
+    ],
+    errors: { es: "", en: "", nl: "" },
+    emails: { es: "", en: "", nl: "" }
+  },
+  {
+    id: "retouren",
+    title: { es: "RETOUREN PROCEDURE (Devoluciones)", en: "RETOUREN PROCEDURE (Returns)", nl: "RETOUREN PROCEDURE (Retourneren)" },
+    objective: { es: "Gestionar los materiales que llegan sin SSCC (código de barras/logística) y deben ser procesados como devolución.", en: "Manage materials that arrive without SSCC (barcode/logistics code) and must be processed as returns.", nl: "Materialen beheren die binnenkomen zonder SSCC (barcode/logistieke code) en als retouren moeten worden verwerkt." },
+    routes: [],
+    steps: [
+      { es: "Identificar cuál es el proveedor (suplier) y el motivo por el que está en retouren (devoluciones).", en: "Identify which supplier it is and the reason why it is in retouren (returns).", nl: "Identificeer welke leverancier het is en de reden waarom het in retouren staat." },
+      { es: "Escribir en la pegatina amarilla el motivo de RETOUREN y el nombre del proveedor. Pegarla donde corresponda.", en: "Write the RETOUREN reason and the supplier name on the yellow sticker. Stick it in the appropriate place.", nl: "Schrijf de RETOUREN-rede en de leveranciersnaam op de gele sticker. Plak deze op de juiste plek." },
+      { es: "Anotar la cantidad, tipo de material y proveedor para escribir el email correspondiente.", en: "Note down the quantity, material type and supplier to write the corresponding email.", nl: "Noteer de hoeveelheid, het materiaaltype en de leverancier om de bijbehorende e-mail te schrijven." },
+      { es: "Mover el material al lugar predeterminado para RETOUREN en el almacén.", en: "Move the material to the designated RETOUREN location in the warehouse.", nl: "Verplaats het materiaal naar de aangewezen RETOUREN-locatie in het magazijn." },
+      { es: "Enviar email a las personas que ya tienen las direcciones guardadas.", en: "Send an email to the people whose addresses are already saved.", nl: "Stuur een e-mail naar de personen van wie de adressen al zijn opgeslagen." }
+    ],
+    errors: { es: "⚠️ MERCADERÍA BOSCH: Tratamiento especial. NO debe salir del edificio 6.\nTomar fotografías de los códigos pegados y enviar email a las personas correspondientes.", en: "⚠️ BOSCH GOODS: Special treatment. MUST NOT leave building 6.\nTake photos of the attached codes and send an email to the relevant people.", nl: "⚠️ BOSCH GOEDEREN: Speciale behandeling. MAG gebouw 6 NIET verlaten.\nMaak foto's van de bijgevoegde codes en stuur een e-mail naar de juiste personen." },
+    emails: { es: "", en: "", nl: "" }
+  }
+];
+
+let lang = 'es';
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+  renderAll();
+}
+
+function get(o) { return o[lang] || o.es || ''; }
+
+function renderAll() {
+  const container = document.getElementById('actividades');
+  container.innerHTML = DATA.map((a, idx) => {
+    const stepsHtml = a.steps.map((s, i) =>
+      `<div class="step"><span class="num">${i+1}</span><span class="text">${esc(get(s))}</span></div>`
+    ).join('');
+
+    const routesHtml = a.routes.length > 0
+      ? `<div style="margin-bottom:12px">${a.routes.map(r => `<span class="route-chip">📂 ${esc(r)}</span>`).join('')}</div>`
+      : '';
+
+    const errorsHtml = get(a.errors).trim()
+      ? `<div class="errors-box">⚠️ ${esc(get(a.errors)).replace(/⚠️ /g,'')}</div>`
+      : '';
+
+    const emailsHtml = get(a.emails).trim()
+      ? `<div class="emails-box">📧 ${esc(get(a.emails))}</div>`
+      : '';
+
+    return `<div class="actividad">
+      <div class="act-header" onclick="toggleAct(${idx})">
+        <h2>📋 ${esc(get(a.title))}</h2>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="act-body" id="act-body-${idx}">
+        <div class="obj-box"><span class="label">🎯 ${t('objLabel')}</span>${esc(get(a.objective))}</div>
+        ${routesHtml}
+        <div style="margin-bottom:8px"><strong>📝 ${t('stepsLabel')}</strong></div>
+        ${stepsHtml}
+        ${errorsHtml}
+        ${emailsHtml}
+      </div>
+    </div>`;
+  }).join('');
+  
+  // Abrir el primero por defecto
+  const first = document.getElementById('act-body-0');
+  if (first) { first.classList.add('open'); first.parentElement.querySelector('.act-header').classList.add('open'); }
+}
+
+function toggleAct(idx) {
+  const body = document.getElementById('act-body-' + idx);
+  const header = body.parentElement.querySelector('.act-header');
+  body.classList.toggle('open');
+  header.classList.toggle('open');
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+const L = {
+  es: { objLabel: 'Objetivo', stepsLabel: 'Pasos' },
+  en: { objLabel: 'Objective', stepsLabel: 'Steps' },
+  nl: { objLabel: 'Doelstelling', stepsLabel: 'Stappen' }
+};
+function t(k) { return L[lang]?.[k] || L.es[k]; }
+
+document.addEventListener('DOMContentLoaded', () => renderAll());
+</script>
+</body>
+</html>
