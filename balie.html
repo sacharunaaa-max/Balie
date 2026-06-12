@@ -243,6 +243,10 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-ghost btn-sm active" data-mode="crop" onclick="setEditorMode('crop')">✂️</button>
       <button class="btn btn-ghost btn-sm" data-mode="draw" onclick="setEditorMode('draw')">✏️</button>
       <button class="btn btn-ghost btn-sm" data-mode="highlight" onclick="setEditorMode('highlight')">🖍</button>
+      <button class="btn btn-ghost btn-sm" data-mode="rect" onclick="setEditorMode('rect')">▭</button>
+      <button class="btn btn-ghost btn-sm" data-mode="circle" onclick="setEditorMode('circle')">○</button>
+      <button class="btn btn-ghost btn-sm" data-mode="arrow" onclick="setEditorMode('arrow')">→</button>
+      <span class="editor-sep"></span>
       <button class="btn btn-ghost btn-sm" data-mode="text" onclick="setEditorMode('text')">📝</button>
       <span class="editor-sep"></span>
       <button class="btn btn-ghost btn-sm" onclick="undoEditorDraw()">↩</button>
@@ -1265,14 +1269,32 @@ function drawEditorImage() {
       ctx.strokeStyle = item.color;
       ctx.lineWidth = item.lineWidth;
       ctx.globalAlpha = item.alpha || 1;
+      ctx.fillStyle = item.color;
       if (item.type === 'draw') {
         ctx.beginPath();
         item.points.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
         ctx.stroke();
       } else if (item.type === 'text') {
         ctx.font = (item.lineWidth * 6) + 'px sans-serif';
-        ctx.fillStyle = item.color;
         ctx.fillText(item.text, item.x, item.y);
+      } else if (item.type === 'rect') {
+        ctx.strokeRect(item.sx, item.sy, item.w, item.h);
+      } else if (item.type === 'circle') {
+        ctx.beginPath();
+        ctx.arc(item.cx, item.cy, item.r, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (item.type === 'arrow') {
+        ctx.beginPath();
+        ctx.moveTo(item.x1, item.y1);
+        ctx.lineTo(item.x2, item.y2);
+        ctx.stroke();
+        const angle = Math.atan2(item.y2 - item.y1, item.x2 - item.x1);
+        ctx.beginPath();
+        ctx.moveTo(item.x2, item.y2);
+        ctx.lineTo(item.x2 - item.hl * Math.cos(angle - 0.4), item.y2 - item.hl * Math.sin(angle - 0.4));
+        ctx.lineTo(item.x2 - item.hl * Math.cos(angle + 0.4), item.y2 - item.hl * Math.sin(angle + 0.4));
+        ctx.closePath();
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
     });
@@ -1330,6 +1352,10 @@ function editorMouseDown(e) {
       _editor.history.push({ type: 'text', color: _editor.color, lineWidth: _editor.lineWidth, x, y, text });
       drawEditorImage();
     }
+  } else if (_editor.mode === 'rect' || _editor.mode === 'circle' || _editor.mode === 'arrow') {
+    _editor.isDrawing = true;
+    _editor.cropStartX = x; _editor.cropStartY = y;
+    _editor.cropEndX = x; _editor.cropEndY = y;
   }
 }
 
@@ -1352,12 +1378,65 @@ function editorMouseMove(e) {
     ctx.stroke();
     ctx.globalAlpha = 1;
     _editor.lastX = x; _editor.lastY = y;
+  } else if ((_editor.mode === 'rect' || _editor.mode === 'circle' || _editor.mode === 'arrow') && _editor.isDrawing) {
+    _editor.cropEndX = x; _editor.cropEndY = y;
+    drawEditorImage();
+    // Draw live shape preview
+    const ctx = _editor.ctx;
+    ctx.strokeStyle = _editor.color;
+    ctx.lineWidth = _editor.lineWidth;
+    ctx.globalAlpha = 1;
+    drawShape(ctx, _editor.mode, _editor.cropStartX, _editor.cropStartY, x, y);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawShape(ctx, type, x1, y1, x2, y2) {
+  const sx = Math.min(x1, x2), sy = Math.min(y1, y2);
+  const ex = Math.max(x1, x2), ey = Math.max(y1, y2);
+  const w = ex - sx, h = ey - sy;
+  ctx.beginPath();
+  if (type === 'rect') {
+    ctx.strokeRect(sx, sy, w, h);
+  } else if (type === 'circle') {
+    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+    const r = Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1)) / 2;
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (type === 'arrow') {
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    // Arrowhead
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const headLen = Math.min(20, Math.sqrt(w*w + h*h) * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.4), y2 - headLen * Math.sin(angle - 0.4));
+    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.4), y2 - headLen * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fill();
   }
 }
 
 function editorMouseUp(e) {
   if (_editor.mode === 'crop') {
     // Crop already drawn, keep selection
+  } else if ((_editor.mode === 'rect' || _editor.mode === 'circle' || _editor.mode === 'arrow') && _editor.isDrawing) {
+    _editor.isDrawing = false;
+    const x1 = _editor.cropStartX, y1 = _editor.cropStartY;
+    const x2 = _editor.cropEndX, y2 = _editor.cropEndY;
+    const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
+    if (w > 3 || h > 3) {
+      if (_editor.mode === 'rect') {
+        _editor.history.push({ type: 'rect', color: _editor.color, lineWidth: _editor.lineWidth, sx: Math.min(x1,x2), sy: Math.min(y1,y2), w, h });
+      } else if (_editor.mode === 'circle') {
+        _editor.history.push({ type: 'circle', color: _editor.color, lineWidth: _editor.lineWidth, cx: (x1+x2)/2, cy: (y1+y2)/2, r: Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))/2 });
+      } else if (_editor.mode === 'arrow') {
+        _editor.history.push({ type: 'arrow', color: _editor.color, lineWidth: _editor.lineWidth, x1, y1, x2, y2, hl: Math.min(20, Math.sqrt(w*w+h*h)*0.3) });
+      }
+      drawEditorImage();
+    }
   } else if (_editor.mode === 'draw' && _editor.isDrawing) {
     _editor.isDrawing = false;
     if (_editor.currentDraw) {
