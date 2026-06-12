@@ -26,7 +26,9 @@ function log(msg) {
 }
 
 function runGit(args) {
-  return execSync(`git ${args.join(' ')}`, { cwd: REPO_DIR, encoding: 'utf8' }).trim();
+  // Escapar cada argumento para shell (comillas simples escapadas)
+  const escaped = args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ');
+  return execSync('git ' + escaped, { cwd: REPO_DIR, encoding: 'utf8' }).trim();
 }
 
 function saveAndCommit(name, rawData) {
@@ -74,7 +76,7 @@ function saveAndCommit(name, rawData) {
     runGit(['add', 'balie-procesos.md']); // por si se actualizó
     
     const commitMsg = `BALIE sync: ${safeName}`;
-    runGit(['commit', '-m', commitMsg]);
+    runGit(['commit', '-m', commitMsg.replace(/:/g, '')]);
     log(`💾 Commit: ${commitMsg}`);
 
     runGit(['push', 'origin', 'main']);
