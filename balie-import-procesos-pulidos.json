@@ -1,0 +1,120 @@
+{
+  "exportedAt": "2026-06-12T09:20:00.000Z",
+  "count": 3,
+  "activities": [
+    {
+      "id": "mq8300kuxj71",
+      "title": "Impresión de CMR para Bouwmarkt (EMBALLAGE)",
+      "objective": "Entregar los CMR a las tiendas Bouwmarkt para que puedan enviar material de embalaje a través de Intergamma. Sin estos CMR, las tiendas no pueden retirar el embalaje.",
+      "routes": [
+        "\\\\server\\carpeta\\RET"
+      ],
+      "steps": [
+        {
+          "text": "Revisar el correo — filtrar los que contengan \"CMR\"",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Abrir el archivo — ir a la carpeta y abrir el archivo RET",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Modificar el encabezado — solo la dirección, SIN copiar y pegar, porque si copias se daña el archivo",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Abrir el programa de impresión de CMR",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "1 CMR = 4 copias (el audio de Jay, cargarlo ahí)",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Empaquetar — juntar las copias en paquetes y anotar la fecha de creación",
+          "audios": [],
+          "photos": []
+        }
+      ],
+      "errors": "Usar SOLO la impresora NLTIEGNP01007_CMR\nEl papel debe ir siempre: rojo primero (página 1), negro último (página 4)",
+      "emails": "",
+      "createdAt": "2026-06-10T13:05:19.854Z",
+      "updatedAt": "2026-06-12T09:20:00.000Z",
+      "audioFields": {},
+      "activityVideo": null
+    },
+    {
+      "id": "mq86d386pc4p",
+      "title": "Reubicación de stock en localizaciones vacías",
+      "objective": "Mover stock de una localización llena a un espacio vacío (NOTINUSE) para mantener el inventario organizado.",
+      "routes": [],
+      "steps": [
+        {
+          "text": "Localizar el STGE lleno — copiar el código \"Current DIY store\", deseleccionar la ubicación (no debe estar seleccionada)",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Buscar un espacio vacío — localizar uno con NOTINUSE, ir a ACTIONS > Edit",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Editar — presionar \"Current DIY store\", usar el icono de filtro para buscar y seleccionar el código copiado",
+          "audios": [],
+          "photos": []
+        }
+      ],
+      "errors": "",
+      "emails": "",
+      "createdAt": "2026-06-10T14:39:28.662Z",
+      "updatedAt": "2026-06-12T09:20:00.000Z",
+      "audioFields": {},
+      "activityVideo": null
+    },
+    {
+      "id": "mq838g1evohy",
+      "title": "RETOUREN PROCEDURE (Devoluciones)",
+      "objective": "Gestionar materiales que llegan sin SSCC (código de barras/logística) y gestionar su devolución correctamente.",
+      "routes": [],
+      "steps": [
+        {
+          "text": "Identificar el suplier y el motivo del retouren",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Escribir en la pegatina amarilla el motivo y el suplier, y pegarla donde corresponda",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Anotar la cantidad, tipo de material y el suplier para el email",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Mover el material al lugar predeterminado para RETOUREN",
+          "audios": [],
+          "photos": []
+        },
+        {
+          "text": "Enviar email a los contactos guardados",
+          "audios": [],
+          "photos": []
+        }
+      ],
+      "errors": "⚠️ Mercadería BOSCH: No debe salir del edificio 6. Tomar fotos de los códigos y enviar email a las personas que corresponden.",
+      "emails": "",
+      "createdAt": "2026-06-10T13:11:53.139Z",
+      "updatedAt": "2026-06-12T09:20:00.000Z",
+      "audioFields": {},
+      "activityVideo": null
+    }
+  ]
+}
