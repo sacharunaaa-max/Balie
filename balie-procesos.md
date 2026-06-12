@@ -1,14 +1,14 @@
 # BALIE — Procesos Documentados
 
-> Sincronizado: 12/6/2026, 13:10:56
+> Sincronizado: 12/6/2026, 13:12:33
 
 ---
 
-## 📋 Test desde cloudflare
+## 📋 Test desde tablet
 
-**Objetivo:** Verificar POST externo
+**Objetivo:** Verificar conexion externa
 
 **Pasos:**
 
-1. Paso de prueba via cloudflare
+1. Paso 1
 
