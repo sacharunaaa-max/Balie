@@ -1044,8 +1044,9 @@ function syncAll() {
 function syncToServer(name, jsonData) {
   // Intentar enviar al servidor local (PC del usuario)
   const servers = [
-    'http://192.168.178.38:18999',  // IP local de la PC
-    'http://localhost:18999'
+    'http://192.168.178.38:18999',  // IP local de la PC (misma WiFi)
+    'http://localhost:18999',        // mismo dispositivo
+    'https://willow-code-atmosphere-aus.trycloudflare.com'  // túnel público (cualquier red)
   ];
   
   function tryServer(idx) {
