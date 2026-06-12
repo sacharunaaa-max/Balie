@@ -889,21 +889,40 @@ function recordField(field) {
   if (_recState.active) return;
   const a = getActivity(currentId);
   if (!a) return;
+  
+  const hasSpeechRec = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  
   startRecording((blob, dataUrl, transcript) => {
     if (!audioBlobs[a.id]) audioBlobs[a.id] = {};
     audioBlobs[a.id][field] = dataUrl;
     saveState();
     updateAudioIndicators();
+    
+    // Si ya hay transcripción nativa, usarla
     if (transcript) {
-      const el = document.getElementById('edit-' + field);
-      if (el) {
-        el.value += (el.value ? '\n' : '') + transcript;
-        el.dispatchEvent(new Event('input'));
-        a.updatedAt = new Date().toISOString();
-        saveState();
-      }
+      insertTranscript(field, transcript);
+      return;
+    }
+    
+    // Si no hay SpeechRecognition nativo, intentar transcripción vía servidor
+    if (!hasSpeechRec) {
+      transcribeViaServer(dataUrl, currentLang, (serverText) => {
+        if (serverText) {
+          insertTranscript(field, serverText);
+        }
+      });
     }
   });
+  
+  function insertTranscript(field, text) {
+    const el = document.getElementById('edit-' + field);
+    if (el && text) {
+      el.value += (el.value ? '\n' : '') + text;
+      el.dispatchEvent(new Event('input'));
+      a.updatedAt = new Date().toISOString();
+      saveState();
+    }
+  }
 }
 
 function playFieldAudio(field) {
@@ -916,10 +935,27 @@ function recordStep(idx) {
   if (_recState.active) return;
   const a = getActivity(currentId);
   if (!a || !a.steps || !a.steps[idx]) return;
+  
+  const hasSpeechRec = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  
   startRecording((blob, dataUrl, transcript) => {
     if (!a.steps[idx].audios) a.steps[idx].audios = [];
     a.steps[idx].audios.push(dataUrl);
-    if (transcript) a.steps[idx].text += (a.steps[idx].text ? ' ' : '') + transcript;
+    
+    if (transcript) {
+      a.steps[idx].text += (a.steps[idx].text ? ' ' : '') + transcript;
+    } else if (!hasSpeechRec) {
+      // Sin SpeechRecognition nativo, intentar servidor
+      transcribeViaServer(dataUrl, currentLang, (serverText) => {
+        if (serverText) {
+          a.steps[idx].text += (a.steps[idx].text ? ' ' : '') + serverText;
+          a.updatedAt = new Date().toISOString();
+          saveState();
+          renderSteps(a);
+        }
+      });
+    }
+    
     a.updatedAt = new Date().toISOString();
     saveState();
     renderSteps(a);
@@ -1145,6 +1181,45 @@ function syncToServer(name, jsonData) {
   }
   
   tryServer(0);
+}
+
+// ─── TRANSCRIBE ───
+function transcribeViaServer(dataUrl, lang, callback) {
+  // dataUrl: "data:audio/webm;base64,..." → extraer solo el base64
+  const base64 = dataUrl.split(',')[1];
+  if (!base64 || base64.length < 100) { if (callback) callback(null); return; }
+  
+  const servers = [
+    'http://192.168.178.38:18999',
+    'http://localhost:18999',
+    'https://exposed-briefs-circles-manual.trycloudflare.com'
+  ];
+  
+  function tryTranscribe(idx) {
+    if (idx >= servers.length) {
+      toastLang('toastSyncError', 'error');
+      if (callback) callback(null);
+      return;
+    }
+    
+    fetch(servers[idx] + '/transcribe', {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio: base64, lang: lang || 'es' })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok' && data.text) {
+        if (callback) callback(data.text);
+      } else {
+        tryTranscribe(idx + 1);
+      }
+    })
+    .catch(() => tryTranscribe(idx + 1));
+  }
+  
+  tryTranscribe(0);
 }
 
 // ─── SYNCED DATA VIEWER ───

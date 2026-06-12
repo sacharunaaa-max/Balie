@@ -94,6 +94,45 @@ function saveAndCommit(name, rawData) {
   }
 }
 
+// ─── TRANSCRIBE ───
+function transcribeAudio(audioBase64, lang) {
+  const tmpDir = '/tmp/balie-transcribe';
+  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+  
+  const inputFile = path.join(tmpDir, 'input.webm');
+  const outputBase = path.join(tmpDir, 'input');
+  
+  // Decodificar base64 a archivo
+  const buf = Buffer.from(audioBase64, 'base64');
+  fs.writeFileSync(inputFile, buf);
+  
+  // Mapa de códigos de idioma
+  const langMap = { es: 'es', nl: 'nl', en: 'en' };
+  const whisperLang = langMap[lang] || 'es';
+  
+  try {
+    const out = execSync(
+      `whisper --model tiny --language ${whisperLang} --output_format txt --output_dir "${tmpDir}" "${inputFile}"`,
+      { encoding: 'utf8', timeout: 30000 }
+    );
+    
+    // Leer el resultado
+    const txtPath = outputBase + '.txt';
+    if (fs.existsSync(txtPath)) {
+      const text = fs.readFileSync(txtPath, 'utf8').trim();
+      // Limpiar temp
+      try { fs.unlinkSync(inputFile); fs.unlinkSync(txtPath); } catch(e) {}
+      return text || null;
+    }
+    return null;
+  } catch (e) {
+    log(`⚠️ Whisper error: ${(e.message || '').slice(0, 150)}`);
+    // Limpiar temp
+    try { fs.unlinkSync(inputFile); } catch(e2) {}
+    return null;
+  }
+}
+
 function generateProcessMarkdown(activities) {
   let md = '# BALIE — Procesos Documentados\n\n';
   md += `> Sincronizado: ${new Date().toLocaleString('es-ES', { timeZone: 'Europe/Amsterdam' })}\n\n`;
@@ -169,6 +208,42 @@ const server = http.createServer((req, res) => {
         }
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: e.message }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/transcribe') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const audioBase64 = payload.audio;
+        const lang = payload.lang || 'es';
+        
+        if (!audioBase64) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'error', message: 'No audio data' }));
+          return;
+        }
+        
+        log(`🎤 Transcribiendo audio (${Math.round(audioBase64.length * 3/4 / 1024)} KB, lang: ${lang})...`);
+        const text = transcribeAudio(audioBase64, lang);
+        
+        if (text) {
+          log(`✅ Transcripción: "${text.slice(0, 100)}${text.length > 100 ? '...' : ''}"`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', text: text }));
+        } else {
+          log(`⚠️ Transcripción vacía`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', text: '' }));
+        }
+      } catch (e) {
+        log(`❌ Error en transcripción: ${e.message}`);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: e.message }));
       }
     });
