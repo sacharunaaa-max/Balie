@@ -125,6 +125,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
   <button class="lang-btn active" data-lang="es" onclick="setLang('es')">🇪🇸 Español</button>
   <button class="lang-btn" data-lang="en" onclick="setLang('en')">🇬🇧 English</button>
   <button class="lang-btn" data-lang="nl" onclick="setLang('nl')">🇳🇱 Nederlands</button>
+  <button class="lang-btn" data-lang="pt" onclick="setLang('pt')">🇵🇹 Português</button>
 </div>
 
 <!-- ===== LIST VIEW ===== -->
@@ -506,6 +507,83 @@ const L = {
     confirmDelete: 'Deze activiteit verwijderen?',
     confirmDelVideo: 'De video van deze activiteit verwijderen?',
     step: 'Stap'
+  },
+  pt: {
+    menuTitle: '📋 BALIE',
+    menuSubtitle: 'Capturador de Procedimentos',
+    importBtn: '📥 Importar',
+    exportAllBtn: '📤 Exportar tudo',
+    syncAllBtn: '☁️ Sincronizar',
+    syncViewBtn: '📡 Dados',
+    backSyncBtn: '← Voltar',
+    refreshBtn: '🔄 Atualizar',
+    loadingSync: '📡 Carregando dados sincronizados...',
+    noSyncData: 'Ainda sem dados sincronizados.',
+    noSyncHint: 'Use ☁️ Enviar para mandar atividades deste app.',
+    syncImported: '📥 Importado',
+    syncCloud: '☁️ Sincronizado',
+    syncFromApp: '📱 Do app',
+    syncSteps: '{n} passo | {n} passos',
+    syncActivities: '{n} processo | {n} processos',
+    syncErrors: '⚠️ Erros comuns',
+    syncEmails: '📧 E-mails',
+    syncRoutes: '📁 Rotas',
+    syncNoObj: 'Sem objetivo',
+    syncNoSteps: 'Sem passos',
+    newActBtn: '➕ NOVA ATIVIDADE',
+    backBtn: '← Voltar',
+    exportBtn: '📄 Exportar',
+    syncBtn: '☁️ Enviar',
+    saveBtn: '💾 Salvar',
+    titlePlaceholder: 'Nome da atividade (ex: Trocar Guarda)',
+    objTitle: '🎯 Objetivo',
+    objPlaceholder: 'O que se faz e por quê?',
+    recordAudioBtn: '🎤 Gravar áudio',
+    videoTitle: '🎥 Vídeo geral do procedimento',
+    videoDesc: 'Filme o procedimento completo de uma vez.',
+    recordVideoBtn: '🎥 Gravar vídeo',
+    viewVideoBtn: '▶ Ver vídeo',
+    delVideoBtn: '🗑️',
+    routesTitle: '📁 Rotas do sistema',
+    routesDesc: 'Caminhos de rede ou pastas onde estão os arquivos.',
+    routePlaceholder: '\\servidor\compartilhado\pasta\',
+    stepsTitle: '📝 Passos',
+    stepsDesc: 'Cada passo pode ser escrito, gravado com áudio ou ter uma foto.',
+    addStepBtn: '➕ ADICIONAR PASSO',
+    editorTitle: '✏️ Editar foto',
+    editorCancel: 'Cancelar',
+    editorOk: 'OK',
+    errorsTitle: '⚠️ Erros comuns',
+    errorsPlaceholder: 'Que erros podem acontecer e como evitá-los',
+    emailsTitle: '📧 E-mails / Relatórios',
+    emailsPlaceholder: 'Assunto, destinatários, template do e-mail',
+    saveActBtn: '💾 SALVAR ATIVIDADE',
+    noActivities: 'Ainda não há atividades salvas.',
+    noActivitiesHint: 'Crie sua primeira atividade para capturar procedimentos.',
+    noSteps: 'Ainda não há passos. Clique em "ADICIONAR PASSO".',
+    noRoutes: 'Sem rotas salvas.',
+    countLabel: '{n} atividade | {n} atividades',
+    toastSaved: '💾 Atividade salva',
+    toastExported: '📄 Exportado: {name}',
+    toastExportedAll: '📤 {n} atividades exportadas',
+    toastImported: '📥 Importado: {name}',
+    toastImportedAll: '📥 {n} atividades importadas',
+    toastNoActivities: 'Nenhuma atividade',
+    toastAudioSaved: '✅ Áudio salvo',
+    toastTranscribed: '✅ Transcrição: "{text}"',
+    toastVideoSaved: '✅ Vídeo salvo',
+    toastPhotoSaved: '📸 Foto salva',
+    toastError: 'Erro: {msg}',
+    toastFormatError: 'Formato não reconhecido',
+    toastRec: '🔴 Gravando áudio...',
+    toastRecVideo: '🎥 Gravando vídeo...',
+    toastSynced: '☁️ Enviado: {name}',
+    toastSyncError: '☁️ Erro ao enviar. O PC está ligado?',
+    stopBtn: '⏹ PARAR GRAVAÇÃO',
+    stepPlaceholder: 'Escreva o passo... ou use 🎤 para gravar com áudio',
+    confirmDelete: 'Excluir esta atividade?',
+    confirmDelVideo: 'Excluir o vídeo desta atividade?',
+    step: 'Passo'
   }
 };
 
@@ -904,7 +982,7 @@ function startRecording(callback) {
   if (SpeechRecognition) {
     try {
       recognition = new SpeechRecognition();
-      recognition.lang = currentLang === 'nl' ? 'nl-NL' : currentLang === 'en' ? 'en-US' : 'es-ES';
+      recognition.lang = currentLang === 'nl' ? 'nl-NL' : currentLang === 'en' ? 'en-US' : currentLang === 'pt' ? 'pt-PT' : 'es-ES';
       recognition.interimResults = true;
       recognition.continuous = true;
       recognition.onresult = (event) => {
@@ -1411,10 +1489,10 @@ function buildExport(a) {
   return {
     filename: safeTitle + '-' + a.id.slice(0,8) + '.json',
     data: {
-      id: a.id, title: a.title, objective: a.objective, objective_en: a.objective_en || '', objective_nl: a.objective_nl || '',
+      id: a.id, title: a.title, objective: a.objective, objective_en: a.objective_en || '', objective_nl: a.objective_nl || '', objective_pt: a.objective_pt || '',
       routes: a.routes || [], steps: stepsWithAudio,
-      errors: a.errors, errors_en: a.errors_en || '', errors_nl: a.errors_nl || '',
-      emails: a.emails, emails_en: a.emails_en || '', emails_nl: a.emails_nl || '',
+      errors: a.errors, errors_en: a.errors_en || '', errors_nl: a.errors_nl || '', errors_pt: a.errors_pt || '',
+      emails: a.emails, emails_en: a.emails_en || '', emails_nl: a.emails_nl || '', emails_pt: a.emails_pt || '',
       createdAt: a.createdAt, updatedAt: a.updatedAt,
       audioFields: audioBlobs[a.id] || {},
       activityVideo: activityVideos[a.id] || null
@@ -1602,10 +1680,10 @@ function renderSyncedData(el, activities) {
   activities.forEach((item, idx) => {
     const a = item.activity;
     const title = a.title || (t('menuTitle') + ' #' + (idx + 1));
-    const objective = a.objective || a.objective_en || a.objective_nl || '';
+    const objective = a.objective || a.objective_en || a.objective_nl || a.objective_pt || '';
     const steps = a.steps || [];
-    const errors = a.errors || a.errors_en || a.errors_nl || '';
-    const emails = a.emails || a.emails_en || a.emails_nl || '';
+    const errors = a.errors || a.errors_en || a.errors_nl || a.errors_pt || '';
+    const emails = a.emails || a.emails_en || a.emails_nl || a.emails_pt || '';
     const routes = a.routes || [];
     
     let sourceLabel = t('syncImported');
@@ -1709,7 +1787,7 @@ function escapeHtml(str) {
 
 function formatDate(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString(currentLang === 'nl' ? 'nl-NL' : currentLang === 'en' ? 'en-US' : 'es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  return new Date(iso).toLocaleDateString(currentLang === 'nl' ? 'nl-NL' : currentLang === 'en' ? 'en-US' : currentLang === 'pt' ? 'pt-PT' : 'es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
 function toast(msg, type) {
