@@ -179,17 +179,6 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div id="activity-video-preview" class="video-preview hidden"></div>
   </div>
 
-  <!-- ROUTES -->
-  <div class="card">
-    <div class="card-title"><span data-i="routesTitle">📁 System routes</span></div>
-    <p class="card-desc" data-i="routesDesc">Network or folder paths used in this procedure.</p>
-    <div id="routes-container" class="mb-8"></div>
-    <div class="gap-6">
-      <input id="new-route-input" data-ph="routePlaceholder" placeholder="\\server\shared\folder\" style="flex:1;margin-bottom:0">
-      <button class="btn btn-ghost btn-sm" onclick="addRoute()">➕</button>
-    </div>
-  </div>
-
   <!-- STEPS -->
   <div class="card">
     <div class="card-title"><span data-i="stepsTitle">📝 Steps</span></div>
@@ -205,6 +194,17 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('errors')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="errors-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('errors')">🔊</button></span>
+    </div>
+  </div>
+
+  <!-- ROUTES -->
+  <div class="card">
+    <div class="card-title"><span data-i="routesTitle">📁 System routes</span></div>
+    <p class="card-desc" data-i="routesDesc">Network or folder paths used in this procedure.</p>
+    <div id="routes-container" class="mb-8"></div>
+    <div class="gap-6">
+      <input id="new-route-input" data-ph="routePlaceholder" placeholder="\\server\shared\folder\" style="flex:1;margin-bottom:0">
+      <button class="btn btn-ghost btn-sm" onclick="addRoute()">➕</button>
     </div>
   </div>
 
