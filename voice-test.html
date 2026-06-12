@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BALIE — Test de Voz</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;padding:20px;max-width:600px;margin:0 auto;text-align:center}
+h1{font-size:1.4rem;margin-bottom:16px;color:#58a6ff}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:24px;margin:16px 0}
+.result{font-size:1.3rem;padding:16px;border-radius:8px;margin:12px 0}
+.result.ok{background:rgba(63,185,80,0.15);border:2px solid #3fb950;color:#3fb950}
+.result.fail{background:rgba(248,81,73,0.15);border:2px solid #f85149;color:#f85149}
+.btn{display:inline-block;padding:12px 24px;border:none;border-radius:8px;font-size:1rem;cursor:pointer;color:#fff;margin:8px;transition:transform 0.15s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:#58a6ff}
+.btn-green{background:#3fb950}
+.info{font-size:0.85rem;color:#8b949e;margin-top:12px;line-height:1.5}
+#test-result{margin-top:20px}
+.hidden{display:none!important}
+.note{font-size:0.8rem;color:#8b949e;margin-top:16px;padding:12px;background:#0d1117;border-radius:6px;text-align:left}
+</style>
+</head>
+<body>
+<h1>🎤 Test de Dictado por Voz</h1>
+
+<div class="card">
+  <p style="margin-bottom:12px">Presioná el botón para comprobar si tu navegador soporta dictado por voz:</p>
+  <button class="btn btn-primary" onclick="testVoice()">🔍 Probar Voz</button>
+  <div id="test-result"></div>
+</div>
+
+<div class="card" id="live-test" style="display:none">
+  <p style="margin-bottom:12px">Presioná y hablá algo. Si funciona, lo escrito aparecerá abajo:</p>
+  <button class="btn btn-green" id="start-btn" onclick="startVoiceTest()">🎤 Presioná y hablá</button>
+  <button class="btn" id="stop-btn" onclick="stopVoiceTest()" style="display:none;background:#f85149">⏹ Detener</button>
+  <div id="live-result" style="margin-top:12px;padding:16px;background:#0d1117;border-radius:6px;min-height:40px;font-size:1.1rem;color:#c9d1d9"></div>
+</div>
+
+<div class="note">
+  <b>📱 En tu Huawei MatePad:</b><br>
+  • ✅ <b>SI dice "DISPONIBLE"</b> → el dictado funciona, toca 🎤 en BALIE y hablá<br>
+  • ❌ <b>SI dice "NO DISPONIBLE"</b> → no hay soporte nativo. Te activo la transcripción por el servidor
+</div>
+
+<script>
+let recognition = null;
+
+function testVoice() {
+  const el = document.getElementById('test-result');
+  const sr = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (sr) {
+    el.innerHTML = '<div class="result ok">✅ <b>¡DISPONIBLE!</b><br><span style="font-size:0.9rem">SpeechRecognition soportado</span></div>';
+    document.getElementById('live-test').style.display = 'block';
+  } else {
+    el.innerHTML = '<div class="result fail">❌ <b>NO DISPONIBLE</b><br><span style="font-size:0.9rem">SpeechRecognition no soportado en este navegador</span></div>';
+  }
+}
+
+function startVoiceTest() {
+  const sr = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!sr) return;
+  
+  recognition = new sr();
+  recognition.lang = 'es-ES';
+  recognition.interimResults = true;
+  recognition.continuous = true;
+  
+  document.getElementById('start-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display = 'inline-block';
+  document.getElementById('live-result').textContent = '🎤 Escuchando... Decí algo';
+  
+  recognition.onresult = (event) => {
+    let final = '';
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        final += event.results[i][0].transcript;
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+    if (final) {
+      document.getElementById('live-result').textContent += final;
+    }
+    if (interim) {
+      document.getElementById('live-result').innerHTML = (document.getElementById('live-result').textContent || '') + '<span style="color:#8b949e">' + interim + '</span>';
+    }
+  };
+  
+  recognition.onerror = (e) => {
+    document.getElementById('live-result').textContent = '❌ Error: ' + e.error;
+    stopVoiceTest();
+  };
+  
+  try { recognition.start(); } catch(e) {}
+}
+
+function stopVoiceTest() {
+  if (recognition) {
+    try { recognition.stop(); } catch(e) {}
+    recognition = null;
+  }
+  document.getElementById('start-btn').style.display = 'inline-block';
+  document.getElementById('stop-btn').style.display = 'none';
+}
+</script>
+</body>
+</html>
