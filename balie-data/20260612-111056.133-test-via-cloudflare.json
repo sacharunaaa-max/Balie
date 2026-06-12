@@ -1,0 +1,9 @@
+{
+  "title": "Test desde cloudflare",
+  "objective": "Verificar POST externo",
+  "steps": [
+    {
+      "text": "Paso de prueba via cloudflare"
+    }
+  ]
+}

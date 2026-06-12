@@ -1,14 +1,14 @@
 # BALIE — Procesos Documentados
 
-> Sincronizado: 12/6/2026, 13:08:44
+> Sincronizado: 12/6/2026, 13:10:56
 
 ---
 
-## 📋 Prueba final
+## 📋 Test desde cloudflare
 
-**Objetivo:** Verificar commit
+**Objetivo:** Verificar POST externo
 
 **Pasos:**
 
-1. Paso 1 de prueba final
+1. Paso de prueba via cloudflare
 
