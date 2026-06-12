@@ -1,0 +1,9 @@
+{
+  "title": "Test final",
+  "objective": "Verificar que todo funciona",
+  "steps": [
+    {
+      "text": "Paso 1 de prueba"
+    }
+  ]
+}
