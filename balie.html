@@ -86,6 +86,20 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .sync-source.cloud{background:rgba(88,166,255,0.15);color:var(--accent)}
 .sync-source.imported{background:rgba(210,153,34,0.15);color:var(--yellow)}
 .sync-source.synced{background:rgba(63,185,80,0.15);color:var(--green)}
+/* Photo editor */
+#photo-editor .modal{padding:12px;max-width:600px;display:flex;flex-direction:column}
+#photo-editor canvas{width:100%;border-radius:6px;background:#000;touch-action:none;cursor:crosshair;display:block}
+.editor-tb{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border)}
+.editor-tb .btn{font-size:1.1rem;padding:6px 12px}
+.editor-tb .btn.active{border-color:var(--accent);background:rgba(88,166,255,0.15);color:var(--accent)}
+.editor-tb .btn-green{background:var(--green);color:#fff}
+.editor-tb .btn-red{background:var(--red);color:#fff}
+.editor-color{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0}
+.editor-color.active{border-color:var(--accent);transform:scale(1.2)}
+.editor-sep{width:1px;height:24px;background:var(--border);display:inline-block;margin:0 4px}
+.editor-size{display:flex;align-items:center;gap:4px}
+.editor-size input[type=range]{width:60px;accent-color:var(--accent)}
+.editor-size span{font-size:0.7rem;color:var(--text2)}
 .synced-stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .synced-stats .stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;text-align:center;flex:1;min-width:100px}
 .synced-stats .stat-num{font-size:1.8rem;font-weight:700;color:var(--accent)}
@@ -216,6 +230,42 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
   <div id="synced-content"></div>
 </div>
 
+<!-- ===== PHOTO EDITOR ===== -->
+<div id="photo-editor" class="modal-overlay" onclick="closePhotoEditor()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="flex-between mb-8">
+      <h3>✏️ <span data-i="editorTitle">Editar foto</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closePhotoEditor()">✕</button>
+    </div>
+    <canvas id="editor-canvas"></canvas>
+    <div class="editor-tb" id="editor-toolbar">
+      <button class="btn btn-ghost btn-sm active" data-mode="crop" onclick="setEditorMode('crop')">✂️</button>
+      <button class="btn btn-ghost btn-sm" data-mode="draw" onclick="setEditorMode('draw')">✏️</button>
+      <button class="btn btn-ghost btn-sm" data-mode="highlight" onclick="setEditorMode('highlight')">🖍</button>
+      <button class="btn btn-ghost btn-sm" data-mode="text" onclick="setEditorMode('text')">📝</button>
+      <span class="editor-sep"></span>
+      <button class="btn btn-ghost btn-sm" onclick="undoEditorDraw()">↩</button>
+      <span class="editor-sep"></span>
+      <div id="editor-colors">
+        <button class="editor-color" data-color="#ff0000" style="background:#ff0000" onclick="setEditorColor('#ff0000')"></button>
+        <button class="editor-color" data-color="#ff8800" style="background:#ff8800" onclick="setEditorColor('#ff8800')"></button>
+        <button class="editor-color" data-color="#ffff00" style="background:#ffff00" onclick="setEditorColor('#ffff00')"></button>
+        <button class="editor-color" data-color="#00ff00" style="background:#00ff00" onclick="setEditorColor('#00ff00')"></button>
+        <button class="editor-color" data-color="#ffffff" style="background:#ffffff;border-color:#888" onclick="setEditorColor('#ffffff')"></button>
+        <button class="editor-color active" data-color="#ff0000" style="background:#ff0000" onclick="setEditorColor('#ff0000')"></button>
+      </div>
+      <span class="editor-sep"></span>
+      <div class="editor-size">
+        <input type="range" min="1" max="10" value="3" id="editor-lw" oninput="_editor.lineWidth = +this.value; document.getElementById('lw-label').textContent = this.value">
+        <span id="lw-label">3</span>
+      </div>
+      <span style="flex:1"></span>
+      <button class="btn btn-sm btn-ghost" onclick="closePhotoEditor()"><span data-i="editorCancel">Cancelar</span></button>
+      <button class="btn btn-sm btn-green" onclick="confirmPhotoEditor()">✓ <span data-i="editorOk">OK</span></button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── STATE ───
 let activities = [];
@@ -268,6 +318,9 @@ const L = {
     stepsTitle: '📝 Pasos',
     stepsDesc: 'Cada paso podés escribirlo, grabarlo con audio o sacarle una foto.',
     addStepBtn: '➕ AÑADIR PASO',
+    editorTitle: '✏️ Editar foto',
+    editorCancel: 'Cancelar',
+    editorOk: 'OK',
     errorsTitle: '⚠️ Errores comunes',
     errorsPlaceholder: 'Qué errores pueden pasar y cómo evitarlos',
     emailsTitle: '📧 Mails / Informes',
@@ -342,6 +395,9 @@ const L = {
     stepsTitle: '📝 Steps',
     stepsDesc: 'Each step can be written, recorded with audio, or have a photo taken.',
     addStepBtn: '➕ ADD STEP',
+    editorTitle: '✏️ Edit photo',
+    editorCancel: 'Cancel',
+    editorOk: 'OK',
     errorsTitle: '⚠️ Common errors',
     errorsPlaceholder: 'Frequent mistakes and how to avoid them',
     emailsTitle: '📧 Emails / Reports',
@@ -416,6 +472,9 @@ const L = {
     stepsTitle: '📝 Stappen',
     stepsDesc: 'Elke stap kan worden geschreven, opgenomen met audio of een foto.',
     addStepBtn: '➕ STAP TOEVOEGEN',
+    editorTitle: '✏️ Foto bewerken',
+    editorCancel: 'Annuleren',
+    editorOk: 'OK',
     errorsTitle: '⚠️ Veelgemaakte fouten',
     errorsPlaceholder: 'Veelvoorkomende fouten en hoe ze te vermijden',
     emailsTitle: '📧 E-mails / Rapporten',
@@ -1039,16 +1098,247 @@ function takePhoto(stepIdx) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      if (!a.steps[stepIdx].photos) a.steps[stepIdx].photos = [];
-      a.steps[stepIdx].photos.push(ev.target.result);
-      a.updatedAt = new Date().toISOString();
-      saveState();
-      renderSteps(a);
-      toastLang('toastPhotoSaved', 'success');
+      openPhotoEditor(ev.target.result, stepIdx);
     };
     reader.readAsDataURL(file);
   };
   input.click();
+}
+
+// ─── PHOTO EDITOR ───
+const _editor = {
+  img: null, canvas: null, ctx: null,
+  mode: 'crop', color: '#ff0000', lineWidth: 3,
+  stepIdx: null, callback: null,
+  isDrawing: false, lastX: 0, lastY: 0,
+  cropStartX: 0, cropStartY: 0, cropEndX: 0, cropEndY: 0,
+  imgW: 0, imgH: 0, cw: 0, ch: 0, sx: 1, sy: 1, ox: 0, oy: 0,
+  history: [], hasOverlay: false
+};
+
+function openPhotoEditor(dataUrl, stepIdx) {
+  _editor.stepIdx = stepIdx;
+  _editor.history = [];
+  _editor.hasOverlay = false;
+  
+  const img = new Image();
+  img.onload = () => {
+    _editor.img = img;
+    _editor.imgW = img.width;
+    _editor.imgH = img.height;
+    
+    const overlay = document.getElementById('photo-editor');
+    overlay.classList.add('show');
+    
+    const canvas = document.getElementById('editor-canvas');
+    _editor.canvas = canvas;
+    
+    // Fit canvas to modal width
+    const maxW = Math.min(600, window.innerWidth - 50);
+    const maxH = window.innerHeight * 0.6;
+    let cw = img.width, ch = img.height;
+    if (cw > maxW) { ch = ch * maxW / cw; cw = maxW; }
+    if (ch > maxH) { cw = cw * maxH / ch; ch = maxH; }
+    canvas.width = cw * 2;  // 2x for retina
+    canvas.height = ch * 2;
+    canvas.style.width = cw + 'px';
+    canvas.style.height = ch + 'px';
+    _editor.cw = cw; _editor.ch = ch;
+    
+    _editor.ctx = canvas.getContext('2d');
+    _editor.ctx.scale(2, 2);
+    
+    _editor.sx = cw / img.width;
+    _editor.sy = ch / img.height;
+    _editor.ox = 0; _editor.oy = 0;
+    
+    drawEditorImage();
+    
+    // Event handlers
+    canvas.onmousedown = editorMouseDown;
+    canvas.onmousemove = editorMouseMove;
+    canvas.onmouseup = editorMouseUp;
+    canvas.ontouchstart = (e) => { e.preventDefault(); const t = e.touches[0]; editorMouseDown({ offsetX: t.clientX - canvas.getBoundingClientRect().left, offsetY: t.clientY - canvas.getBoundingClientRect().top }); };
+    canvas.ontouchmove = (e) => { e.preventDefault(); const t = e.touches[0]; editorMouseMove({ offsetX: t.clientX - canvas.getBoundingClientRect().left, offsetY: t.clientY - canvas.getBoundingClientRect().top }); };
+    canvas.ontouchend = (e) => { e.preventDefault(); editorMouseUp({}); };
+    
+    // Set default mode
+    setEditorMode('crop');
+  };
+  img.src = dataUrl;
+}
+
+function closePhotoEditor() {
+  document.getElementById('photo-editor').classList.remove('show');
+  _editor.img = null;
+}
+
+function drawEditorImage() {
+  const ctx = _editor.ctx;
+  ctx.clearRect(0, 0, _editor.cw, _editor.ch);
+  if (_editor.ox || _editor.oy) {
+    ctx.drawImage(_editor.img, _editor.ox, _editor.oy, _editor.imgW - _editor.ox*2, _editor.imgH - _editor.oy*2, 0, 0, _editor.cw, _editor.ch);
+  } else {
+    ctx.drawImage(_editor.img, 0, 0, _editor.cw, _editor.ch);
+  }
+  // Redraw overlays from history
+  if (_editor.history.length > 0) {
+    _editor.history.forEach(item => {
+      ctx.strokeStyle = item.color;
+      ctx.lineWidth = item.lineWidth;
+      ctx.globalAlpha = item.alpha || 1;
+      if (item.type === 'draw') {
+        ctx.beginPath();
+        item.points.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+        ctx.stroke();
+      } else if (item.type === 'text') {
+        ctx.font = (item.lineWidth * 6) + 'px sans-serif';
+        ctx.fillStyle = item.color;
+        ctx.fillText(item.text, item.x, item.y);
+      }
+      ctx.globalAlpha = 1;
+    });
+  }
+  // Draw crop rect if in crop mode and has selection
+  if (_editor.mode === 'crop' && _editor.cropStartX !== _editor.cropEndX) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(
+      Math.min(_editor.cropStartX, _editor.cropEndX),
+      Math.min(_editor.cropStartY, _editor.cropEndY),
+      Math.abs(_editor.cropEndX - _editor.cropStartX),
+      Math.abs(_editor.cropEndY - _editor.cropStartY)
+    );
+    ctx.setLineDash([]);
+  }
+}
+
+function saveEditorState() {
+  // Save current canvas state as base overlay
+  _editor.hasOverlay = _editor.history.length > 0;
+}
+
+function setEditorMode(mode) {
+  _editor.mode = mode;
+  document.querySelectorAll('#editor-toolbar [data-mode]').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  if (mode === 'crop') {
+    _editor.cropStartX = _editor.cropStartY = _editor.cropEndX = _editor.cropEndY = 0;
+    drawEditorImage();
+  }
+}
+
+function setEditorColor(color) {
+  _editor.color = color;
+  document.querySelectorAll('.editor-color').forEach(b => {
+    b.classList.toggle('active', b.dataset.color === color);
+  });
+}
+
+function editorMouseDown(e) {
+  const x = e.offsetX, y = e.offsetY;
+  if (_editor.mode === 'crop') {
+    _editor.cropStartX = x; _editor.cropStartY = y;
+    _editor.cropEndX = x; _editor.cropEndY = y;
+  } else if (_editor.mode === 'draw' || _editor.mode === 'highlight') {
+    _editor.isDrawing = true;
+    _editor.lastX = x; _editor.lastY = y;
+    _editor.currentDraw = { type: 'draw', color: _editor.mode === 'highlight' ? '#ffff00' : _editor.color, lineWidth: _editor.mode === 'highlight' ? _editor.lineWidth * 3 : _editor.lineWidth, alpha: _editor.mode === 'highlight' ? 0.4 : 1, points: [{x, y}] };
+  } else if (_editor.mode === 'text') {
+    const text = prompt('Texto:');
+    if (text) {
+      _editor.history.push({ type: 'text', color: _editor.color, lineWidth: _editor.lineWidth, x, y, text });
+      drawEditorImage();
+    }
+  }
+}
+
+function editorMouseMove(e) {
+  const x = e.offsetX, y = e.offsetY;
+  if (_editor.mode === 'crop') {
+    _editor.cropEndX = x; _editor.cropEndY = y;
+    drawEditorImage();
+  } else if (_editor.mode === 'draw' && _editor.isDrawing) {
+    _editor.currentDraw.points.push({x, y});
+    drawEditorImage();
+    // Redraw current stroke in real-time
+    const ctx = _editor.ctx;
+    const d = _editor.currentDraw;
+    ctx.strokeStyle = d.color;
+    ctx.lineWidth = d.lineWidth;
+    ctx.globalAlpha = d.alpha;
+    ctx.beginPath();
+    d.points.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    _editor.lastX = x; _editor.lastY = y;
+  }
+}
+
+function editorMouseUp(e) {
+  if (_editor.mode === 'crop') {
+    // Crop already drawn, keep selection
+  } else if (_editor.mode === 'draw' && _editor.isDrawing) {
+    _editor.isDrawing = false;
+    if (_editor.currentDraw) {
+      _editor.history.push(_editor.currentDraw);
+      _editor.currentDraw = null;
+    }
+  }
+}
+
+function undoEditorDraw() {
+  if (_editor.history.length > 0) {
+    _editor.history.pop();
+    drawEditorImage();
+  }
+}
+
+function confirmPhotoEditor() {
+  if (!_editor.img) return;
+  
+  const canvas = _editor.canvas;
+  const ctx = _editor.ctx;
+  
+  let finalImg;
+  
+  // If crop mode and has crop selection
+  if (_editor.mode === 'crop' && _editor.cropStartX !== _editor.cropEndX) {
+    const x = Math.min(_editor.cropStartX, _editor.cropEndX);
+    const y = Math.min(_editor.cropStartY, _editor.cropEndY);
+    const w = Math.abs(_editor.cropEndX - _editor.cropStartX);
+    const h = Math.abs(_editor.cropEndY - _editor.cropStartY);
+    
+    if (w > 5 && h > 5) {
+      // Create cropped image from full-res canvas (2x retina)
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = w * 2;
+      cropCanvas.height = h * 2;
+      const cropCtx = cropCanvas.getContext('2d');
+      cropCtx.drawImage(canvas, x*2, y*2, w*2, h*2, 0, 0, w*2, h*2);
+      finalImg = cropCanvas.toDataURL('image/jpeg', 0.92);
+    }
+  }
+  
+  if (!finalImg) {
+    // Just export with overlays
+    finalImg = canvas.toDataURL('image/jpeg', 0.92);
+  }
+  
+  // Save to step
+  const a = getActivity(currentId);
+  if (a && _editor.stepIdx !== null && a.steps && a.steps[_editor.stepIdx]) {
+    if (!a.steps[_editor.stepIdx].photos) a.steps[_editor.stepIdx].photos = [];
+    a.steps[_editor.stepIdx].photos.push(finalImg);
+    a.updatedAt = new Date().toISOString();
+    saveState();
+    renderSteps(a);
+    toastLang('toastPhotoSaved', 'success');
+  }
+  
+  closePhotoEditor();
 }
 
 // ─── MEDIA VIEWER ───
