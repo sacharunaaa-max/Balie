@@ -72,6 +72,24 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .video-preview video{width:100%;display:block;max-height:200px}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
 .empty-state p{margin-bottom:16px;font-size:0.95rem}
+/* Synced data view */
+.sync-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;background:var(--card)}
+.sync-card h3{font-size:1rem;margin-bottom:6px;color:var(--accent)}
+.sync-card .meta{font-size:0.75rem;color:var(--text2);margin-bottom:8px}
+.sync-card .obj{font-size:0.85rem;color:var(--text);margin-bottom:10px;padding:8px;background:var(--bg);border-radius:4px;border-left:3px solid var(--yellow)}
+.sync-card .step-item{padding:6px 10px;margin:4px 0;background:var(--bg);border-radius:4px;font-size:0.83rem;border-left:2px solid var(--accent)}
+.sync-card .error-box{font-size:0.83rem;padding:8px;margin-top:8px;background:rgba(248,81,73,0.1);border-left:3px solid var(--red);border-radius:4px;color:var(--red)}
+.sync-card .email-box{font-size:0.83rem;padding:8px;margin-top:6px;background:rgba(88,166,255,0.1);border-left:3px solid var(--accent);border-radius:4px}
+.sync-card .route-chip-sync{display:inline-block;background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:12px;font-size:0.75rem;font-family:monospace;color:var(--green);margin:2px}
+.sync-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px}
+.sync-source{font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:600}
+.sync-source.cloud{background:rgba(88,166,255,0.15);color:var(--accent)}
+.sync-source.imported{background:rgba(210,153,34,0.15);color:var(--yellow)}
+.sync-source.synced{background:rgba(63,185,80,0.15);color:var(--green)}
+.synced-stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.synced-stats .stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;text-align:center;flex:1;min-width:100px}
+.synced-stats .stat-num{font-size:1.8rem;font-weight:700;color:var(--accent)}
+.synced-stats .stat-label{font-size:0.75rem;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -104,6 +122,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-ghost btn-sm" onclick="importData()"><span data-i="importBtn">📥 Import</span></button>
       <button class="btn btn-green btn-sm" onclick="exportAll()"><span data-i="exportAllBtn">📤 Export all</span></button>
       <button class="btn btn-yellow btn-sm" onclick="syncAll()"><span data-i="syncAllBtn">☁️ Sync all</span></button>
+      <button class="btn btn-primary btn-sm" onclick="showSynced()" style="background:var(--text2)"><span data-i="syncViewBtn">📡 Datos</span></button>
     </div>
   </div>
   <div id="activity-list"></div>
@@ -187,6 +206,16 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
   <button class="btn btn-primary" onclick="saveCurrent()" style="width:100%;justify-content:center;margin-top:8px"><span data-i="saveActBtn">💾 SAVE ACTIVITY</span></button>
 </div>
 
+<!-- ===== SYNCED DATA VIEW ===== -->
+<div id="view-synced" class="hidden">
+  <div class="flex-between mb-8">
+    <button class="btn btn-ghost btn-sm" onclick="backToSynced()"><span data-i="backSyncBtn">← Volver</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="refreshSynced()" style="font-size:0.75rem"><span data-i="refreshBtn">🔄 Refrescar</span></button>
+  </div>
+  <div id="synced-loading" style="text-align:center;padding:40px;color:var(--text2)"><span data-i="loadingSync">📡 Cargando datos sincronizados...</span></div>
+  <div id="synced-content"></div>
+</div>
+
 <script>
 // ─── STATE ───
 let activities = [];
@@ -203,6 +232,22 @@ const L = {
     importBtn: '📥 Importar',
     exportAllBtn: '📤 Exportar todo',
     syncAllBtn: '☁️ Subir todas',
+    syncViewBtn: '📡 Datos',
+    backSyncBtn: '← Volver',
+    refreshBtn: '🔄 Refrescar',
+    loadingSync: '📡 Cargando datos sincronizados...',
+    noSyncData: 'Aún no hay datos sincronizados.',
+    noSyncHint: 'Usá ☁️ Subir para enviar actividades desde esta app.',
+    syncImported: '📥 Importado',
+    syncCloud: '☁️ Sincronizado',
+    syncFromApp: '📱 Desde la app',
+    syncSteps: '{n} paso | {n} pasos',
+    syncActivities: '{n} proceso | {n} procesos',
+    syncErrors: '⚠️ Errores comunes',
+    syncEmails: '📧 Emails',
+    syncRoutes: '📁 Rutas',
+    syncNoObj: 'Sin objetivo',
+    syncNoSteps: 'Sin pasos',
     newActBtn: '➕ NUEVA ACTIVIDAD',
     backBtn: '← Volver',
     exportBtn: '📄 Exportar',
@@ -261,6 +306,22 @@ const L = {
     importBtn: '📥 Import',
     exportAllBtn: '📤 Export all',
     syncAllBtn: '☁️ Sync all',
+    syncViewBtn: '📡 Data',
+    backSyncBtn: '← Back',
+    refreshBtn: '🔄 Refresh',
+    loadingSync: '📡 Loading synced data...',
+    noSyncData: 'No synced data yet.',
+    noSyncHint: 'Use ☁️ Upload to send activities from this app.',
+    syncImported: '📥 Imported',
+    syncCloud: '☁️ Synced',
+    syncFromApp: '📱 From app',
+    syncSteps: '{n} step | {n} steps',
+    syncActivities: '{n} procedure | {n} procedures',
+    syncErrors: '⚠️ Common errors',
+    syncEmails: '📧 Emails',
+    syncRoutes: '📁 Routes',
+    syncNoObj: 'No objective',
+    syncNoSteps: 'No steps',
     newActBtn: '➕ NEW ACTIVITY',
     backBtn: '← Back',
     exportBtn: '📄 Export',
@@ -319,6 +380,22 @@ const L = {
     importBtn: '📥 Importeren',
     exportAllBtn: '📤 Alles exporteren',
     syncAllBtn: '☁️ Alles uploaden',
+    syncViewBtn: '📡 Gegevens',
+    backSyncBtn: '← Terug',
+    refreshBtn: '🔄 Verversen',
+    loadingSync: '📡 Gesynchroniseerde gegevens laden...',
+    noSyncData: 'Nog geen gesynchroniseerde gegevens.',
+    noSyncHint: 'Gebruik ☁️ Uploaden om activiteiten vanuit deze app te versturen.',
+    syncImported: '📥 Geïmporteerd',
+    syncCloud: '☁️ Gesynchroniseerd',
+    syncFromApp: '📱 Vanuit app',
+    syncSteps: '{n} stap | {n} stappen',
+    syncActivities: '{n} procedure | {n} procedures',
+    syncErrors: '⚠️ Veelgemaakte fouten',
+    syncEmails: '📧 E-mails',
+    syncRoutes: '📁 Paden',
+    syncNoObj: 'Geen doelstelling',
+    syncNoSteps: 'Geen stappen',
     newActBtn: '➕ NIEUWE ACTIVITEIT',
     backBtn: '← Terug',
     exportBtn: '📄 Exporteren',
@@ -1068,6 +1145,157 @@ function syncToServer(name, jsonData) {
   }
   
   tryServer(0);
+}
+
+// ─── SYNCED DATA VIEWER ───
+const GITHUB_RAW = 'https://raw.githubusercontent.com/sacharunaaa-max/Balie/main';
+const GITHUB_API_CONTENTS = 'https://api.github.com/repos/sacharunaaa-max/Balie/contents/balie-data';
+
+function showSynced() {
+  document.getElementById('view-list').classList.add('hidden');
+  document.getElementById('view-synced').classList.remove('hidden');
+  refreshSynced();
+}
+
+function backToSynced() {
+  document.getElementById('view-synced').classList.add('hidden');
+  document.getElementById('view-list').classList.remove('hidden');
+}
+
+function refreshSynced() {
+  const el = document.getElementById('synced-content');
+  const loading = document.getElementById('synced-loading');
+  loading.classList.remove('hidden');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">⏳ ' + t('loadingSync') + '</div>';
+  
+  Promise.all([
+    fetch(GITHUB_RAW + '/balie-import-procesos-pulidos.json').then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(GITHUB_RAW + '/balie-procesos.md').then(r => r.ok ? r.text() : null).catch(() => null)
+  ]).then(([imported, markdown]) => {
+    loading.classList.add('hidden');
+    
+    if (!imported && !markdown) {
+      el.innerHTML = '<div class="empty-state"><p>📭 ' + t('noSyncData') + '</p><p style="font-size:0.8rem">' + t('noSyncHint') + '</p></div>';
+      return;
+    }
+    
+    let html = '';
+    let activities = [];
+    
+    // Collect from imported JSON
+    if (imported && imported.activities) {
+      imported.activities.forEach(a => {
+        activities.push({ activity: a, source: 'imported' });
+      });
+    }
+    
+    // Also try to fetch latest synced data
+    fetch(GITHUB_API_CONTENTS)
+      .then(r => r.ok ? r.json() : [])
+      .then(files => {
+        // Sort by name desc (most recent first)
+        files.sort((a, b) => b.name.localeCompare(a.name));
+        // Get newest .json (skip import file)
+        const jsonFiles = files.filter(f => f.name.endsWith('.json') && f.name !== 'balie-import-procesos-pulidos.json' && f.size > 500);
+        if (jsonFiles.length > 0) {
+          fetch(jsonFiles[0].download_url)
+            .then(r => r.ok ? r.json() : null)
+            .then(synced => {
+              if (synced && synced.activities) {
+                synced.activities.forEach(a => {
+                  if (!activities.some(ex => ex.activity.title === a.title)) {
+                    activities.push({ activity: a, source: 'synced' });
+                  }
+                });
+              }
+              renderSyncedData(el, activities);
+            })
+            .catch(() => renderSyncedData(el, activities));
+        } else {
+          renderSyncedData(el, activities);
+        }
+      })
+      .catch(() => renderSyncedData(el, activities));
+  });
+}
+
+function renderSyncedData(el, activities) {
+  if (activities.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>📭 ' + t('noSyncData') + '</p><p style="font-size:0.8rem">' + t('noSyncHint') + '</p></div>';
+    return;
+  }
+  
+  const totalSteps = activities.reduce((sum, a) => sum + (a.activity.steps ? a.activity.steps.length : 0), 0);
+  const hasErrors = activities.filter(a => a.activity.errors).length;
+  
+  let html = '<div class="synced-stats">' +
+    '<div class="stat"><div class="stat-num">' + activities.length + '</div><div class="stat-label">' + plural(activities.length, t('syncActivities')).replace(/{n}/g, activities.length) + '</div></div>' +
+    '<div class="stat"><div class="stat-num">' + totalSteps + '</div><div class="stat-label">' + plural(totalSteps, t('syncSteps')).replace('{n}', '').trim() + '</div></div>' +
+    (hasErrors ? '<div class="stat"><div class="stat-num" style="color:var(--red)">' + hasErrors + '</div><div class="stat-label">' + t('syncErrors').split(' ')[0] + '</div></div>' : '') +
+    '</div>';
+  
+  activities.forEach((item, idx) => {
+    const a = item.activity;
+    const title = a.title || (t('menuTitle') + ' #' + (idx + 1));
+    const objective = a.objective || a.objective_en || a.objective_nl || '';
+    const steps = a.steps || [];
+    const errors = a.errors || a.errors_en || a.errors_nl || '';
+    const emails = a.emails || a.emails_en || a.emails_nl || '';
+    const routes = a.routes || [];
+    
+    let sourceLabel = t('syncImported');
+    let sourceClass = 'imported';
+    if (item.source === 'synced') {
+      sourceLabel = t('syncFromApp');
+      sourceClass = 'synced';
+    }
+    
+    html += '<div class="sync-card">';
+    html += '<div class="sync-header"><h3>' + escapeHtml(title) + '</h3><span class="sync-source ' + sourceClass + '">' + sourceLabel + '</span></div>';
+    
+    if (objective) {
+      html += '<div class="obj">🎯 ' + escapeHtml(objective) + '</div>';
+    } else {
+      html += '<div class="obj" style="border-color:var(--text2);color:var(--text2);font-style:italic">' + t('syncNoObj') + '</div>';
+    }
+    
+    if (routes.length > 0) {
+      html += '<div style="margin-bottom:8px"><span style="font-size:0.75rem;color:var(--text2)">' + t('syncRoutes') + ':</span> ';
+      routes.forEach(r => { html += '<span class="route-chip-sync">' + escapeHtml(r) + '</span> '; });
+      html += '</div>';
+    }
+    
+    if (steps.length > 0) {
+      html += '<div style="margin-bottom:6px"><span style="font-size:0.75rem;color:var(--text2)">📝 ' + plural(steps.length, t('syncSteps')).replace('{n}', steps.length) + '</span></div>';
+      steps.forEach((s, si) => {
+        const txt = s.text || s.description || '';
+        const hasAudio = s.audios && s.audios.length > 0;
+        const hasPhoto = s.photos && s.photos.length > 0;
+        html += '<div class="step-item"><b>' + (si + 1) + '.</b> ' + escapeHtml(txt);
+        if (hasAudio) html += ' <span style="font-size:0.7rem;color:var(--accent)">🎤</span>';
+        if (hasPhoto) html += ' <span style="font-size:0.7rem;color:var(--yellow)">📸</span>';
+        html += '</div>';
+      });
+    } else {
+      html += '<div style="font-size:0.8rem;color:var(--text2);margin:4px 0">' + t('syncNoSteps') + '</div>';
+    }
+    
+    if (errors) {
+      html += '<div class="error-box">⚠️ ' + escapeHtml(errors) + '</div>';
+    }
+    if (emails) {
+      html += '<div class="email-box">📧 ' + escapeHtml(emails) + '</div>';
+    }
+    
+    html += '</div>';
+  });
+  
+  el.innerHTML = html;
+}
+
+function plural(n, str) {
+  const parts = str.split('|');
+  return n === 1 ? parts[0] : (parts[1] || parts[0]);
 }
 
 // ─── IMPORT ───
