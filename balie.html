@@ -134,6 +134,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
   <div class="flex-between mb-8">
     <span id="count-label" style="color:var(--text2);font-size:0.85rem">0 actividades</span>
     <div class="gap-6">
+      <span class="server-status" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--text2);cursor:help" title="Comprobando servidor..."></span>
       <button class="btn btn-ghost btn-sm" onclick="importData()"><span data-i="importBtn">📥 Import</span></button>
       <button class="btn btn-green btn-sm" onclick="exportAll()"><span data-i="exportAllBtn">📤 Export all</span></button>
       <button class="btn btn-yellow btn-sm" onclick="syncAll()"><span data-i="syncAllBtn">☁️ Sync all</span></button>
@@ -153,7 +154,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-green btn-sm" onclick="syncCurrent()"><span data-i="syncBtn">☁️ Subir</span></button>
       <button class="btn btn-sm btn-primary" onclick="saveCurrent()"><span data-i="saveBtn">💾 Save</span></button>
       <span id="auto-save-indicator" class="hidden" style="font-size:0.7rem;color:var(--green);white-space:nowrap">💾 Auto</span>
-      <span id="server-status" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--text2);cursor:help" title="Comprobando servidor..."></span>
+      <span class="server-status" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--text2);cursor:help" title="Comprobando servidor..."></span>
     </div>
   </div>
 
@@ -1614,12 +1615,27 @@ function downloadFile(name, content, mime) {
 let _autoSaveTimer = null;
 
 function checkServerStatus() {
-  const dot = document.getElementById('server-status');
-  if (!dot) return;
-  fetch('http://192.168.178.38:18999/health', { mode: 'cors' })
-    .then(r => { if (r.ok) { dot.style.background = 'var(--green)'; dot.title = 'Servidor conectado'; }
-      else { dot.style.background = 'var(--red)'; dot.title = 'Servidor no responde'; } })
-    .catch(() => { dot.style.background = 'var(--red)'; dot.title = 'Servidor desconectado'; });
+  const dots = document.querySelectorAll('.server-status');
+  if (!dots.length) return;
+  // Try multiple servers
+  const servers = [
+    'http://192.168.178.38:18999',
+    'https://exposed-briefs-circles-manual.trycloudflare.com'
+  ];
+  function tryPing(idx) {
+    if (idx >= servers.length) {
+      dots.forEach(d => { d.style.background = 'var(--red)'; d.title = 'Servidor desconectado'; });
+      return;
+    }
+    fetch(servers[idx] + '/health', { mode: 'cors' })
+      .then(r => {
+        if (r.ok) {
+          dots.forEach(d => { d.style.background = 'var(--green)'; d.title = 'Servidor conectado'; });
+        } else { tryPing(idx + 1); }
+      })
+      .catch(() => tryPing(idx + 1));
+  }
+  tryPing(0);
 }
 
 function autoSave() {
