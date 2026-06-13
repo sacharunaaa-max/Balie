@@ -167,6 +167,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('objective')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="objective-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('objective')">🔊</button></span>
+      <button class="btn btn-ghost btn-sm" onclick="homogenizeField('objective')" style="color:var(--accent)">🤖</button>
     </div>
   </div>
 
@@ -185,6 +186,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('errors')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="errors-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('errors')">🔊</button></span>
+      <button class="btn btn-ghost btn-sm" onclick="homogenizeField('errors')" style="color:var(--accent)">🤖</button>
     </div>
   </div>
 
@@ -206,6 +208,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('emails')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="emails-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('emails')">🔊</button></span>
+      <button class="btn btn-ghost btn-sm" onclick="homogenizeField('emails')" style="color:var(--accent)">🤖</button>
     </div>
   </div>
 
@@ -862,6 +865,7 @@ function renderStep(s, i) {
       <span class="badge badge-count">${i+1}</span>
       <button class="btn btn-ghost btn-sm" onclick="recordStep(${i})" title="${t('recordAudioBtn').replace('🎤 ','')}">🎤</button>
       ${audioBtns}
+      <button class="btn btn-ghost btn-sm" onclick="homogenizeStep(${i})" style="color:var(--accent)">🤖</button>
       <button class="btn btn-ghost btn-sm" onclick="takePhoto(${i})" title="📸">📸</button>
       <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},-1)">↑</button>
       <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},1)">↓</button>
@@ -1552,6 +1556,32 @@ function closeMediaOverlay() {
 }
 
 // ─── SAVE ───
+// ─── HOMOGENIZE ───
+function homogenizeField(field) {
+  const a = getActivity(currentId);
+  if (!a) return;
+  const idField = 'edit-' + field;
+  const el = document.getElementById(idField);
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) { toastLang('toastError', 'error', { msg: 'No hay texto' }); return; }
+  sendToWhatsApp(a.title || 'Proceso', field, text);
+}
+
+function homogenizeStep(idx) {
+  const a = getActivity(currentId);
+  if (!a || !a.steps || !a.steps[idx]) return;
+  const text = a.steps[idx].text.trim();
+  if (!text) { toastLang('toastError', 'error', { msg: 'No hay texto' }); return; }
+  sendToWhatsApp(a.title || 'Proceso', 'Paso ' + (idx + 1), text);
+}
+
+function sendToWhatsApp(title, field, text) {
+  const msg = `🤖 Homogeneizá esto:\n\n📋 *${title}* - *${field}*\n\n${text}`;
+  const url = 'https://wa.me/34692862394?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
 function saveCurrent() {
   const a = getActivity(currentId);
   if (!a) return;
