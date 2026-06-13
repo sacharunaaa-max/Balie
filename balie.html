@@ -357,6 +357,8 @@ const L = {
     toastRec: '🔴 Grabando audio...',
     toastRecVideo: '🎥 Grabando video...',
     toastSynced: '☁️ Subido: {name}',
+    toastHomSent: '🤖 Enviado para corregir',
+    toastHomError: '🤖 Error al enviar. ¿La PC está encendida?',
     toastSyncError: '☁️ Error al subir. ¿La PC está encendida?',
     stopBtn: '⏹ DETENER GRABACIÓN',
     stepPlaceholder: 'Escribí el paso... o usá 🎤 para grabarlo con audio',
@@ -434,6 +436,8 @@ const L = {
     toastRec: '🔴 Recording audio...',
     toastRecVideo: '🎥 Recording video...',
     toastSynced: '☁️ Synced: {name}',
+    toastHomSent: '🤖 Sent for correction',
+    toastHomError: '🤖 Send error. Is the PC on?',
     toastSyncError: '☁️ Sync error. Is the PC on?',
     stopBtn: '⏹ STOP RECORDING',
     stepPlaceholder: 'Write the step... or use 🎤 to record it with audio',
@@ -511,6 +515,8 @@ const L = {
     toastRec: '🔴 Audio opnemen...',
     toastRecVideo: '🎥 Video opnemen...',
     toastSynced: '☁️ Geüpload: {name}',
+    toastHomSent: '🤖 Verzonden voor correctie',
+    toastHomError: '🤖 Verzendfout. Staat de pc aan?',
     toastSyncError: '☁️ Uploadfout. Staat de pc aan?',
     stopBtn: '⏹ STOP OPNEMEN',
     stepPlaceholder: 'Schrijf de stap... of gebruik 🎤 om audio op te nemen',
@@ -588,6 +594,8 @@ const L = {
     toastRec: '🔴 Gravando áudio...',
     toastRecVideo: '🎥 Gravando vídeo...',
     toastSynced: '☁️ Enviado: {name}',
+    toastHomSent: '🤖 Enviado para corrigir',
+    toastHomError: '🤖 Erro ao enviar. O PC está ligado?',
     toastSyncError: '☁️ Erro ao enviar. O PC está ligado?',
     stopBtn: '⏹ PARAR GRAVAÇÃO',
     stepPlaceholder: 'Escreva o passo... ou use 🎤 para gravar com áudio',
@@ -1560,12 +1568,11 @@ function closeMediaOverlay() {
 function homogenizeField(field) {
   const a = getActivity(currentId);
   if (!a) return;
-  const idField = 'edit-' + field;
-  const el = document.getElementById(idField);
+  const el = document.getElementById('edit-' + field);
   if (!el) return;
   const text = el.value.trim();
   if (!text) { toastLang('toastError', 'error', { msg: 'No hay texto' }); return; }
-  sendToWhatsApp(a.title || 'Proceso', field, text);
+  sendHomogenize(a.title || 'Proceso', field, text);
 }
 
 function homogenizeStep(idx) {
@@ -1573,13 +1580,36 @@ function homogenizeStep(idx) {
   if (!a || !a.steps || !a.steps[idx]) return;
   const text = a.steps[idx].text.trim();
   if (!text) { toastLang('toastError', 'error', { msg: 'No hay texto' }); return; }
-  sendToWhatsApp(a.title || 'Proceso', 'Paso ' + (idx + 1), text);
+  sendHomogenize(a.title || 'Proceso', 'Paso ' + (idx + 1), text);
 }
 
-function sendToWhatsApp(title, field, text) {
-  const msg = `🤖 Homogeneizá esto:\n\n📋 *${title}* - *${field}*\n\n${text}`;
-  const url = 'https://wa.me/34692862394?text=' + encodeURIComponent(msg);
-  window.open(url, '_blank');
+let _homReq = 0;
+function sendHomogenize(title, field, text) {
+  const reqId = ++_homReq;
+  const servers = [
+    'http://192.168.178.38:18999',
+    'https://exposed-briefs-circles-manual.trycloudflare.com'
+  ];
+  
+  function trySend(idx) {
+    if (idx >= servers.length) {
+      toastLang('toastHomError', 'error');
+      return;
+    }
+    fetch(servers[idx] + '/homogenize', {
+      method: 'POST', mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, field, text, reqId, ts: new Date().toISOString() })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        toastLang('toastHomSent', 'success');
+      } else { trySend(idx + 1); }
+    })
+    .catch(() => trySend(idx + 1));
+  }
+  trySend(0);
 }
 
 function saveCurrent() {

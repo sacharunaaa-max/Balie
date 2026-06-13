@@ -107,7 +107,7 @@ function transcribeAudio(audioBase64, lang) {
   fs.writeFileSync(inputFile, buf);
   
   // Mapa de códigos de idioma
-  const langMap = { es: 'es', nl: 'nl', en: 'en' };
+  const langMap = { es: 'es', nl: 'nl', en: 'en', pt: 'pt' };
   const whisperLang = langMap[lang] || 'es';
   
   try {
@@ -243,6 +243,28 @@ const server = http.createServer((req, res) => {
         }
       } catch (e) {
         log(`❌ Error en transcripción: ${e.message}`);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: e.message }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/homogenize') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const home = process.env.HOME || '/home/sacharuna';
+        const queueDir = home + '/.balie/homogenize-queue/';
+        if (!fs.existsSync(queueDir)) fs.mkdirSync(queueDir, { recursive: true });
+        const file = queueDir + 'req-' + Date.now() + '.json';
+        fs.writeFileSync(file, JSON.stringify(payload, null, 2));
+        log(`🤖 Homogenize request: ${payload.title} - ${payload.field} (${(payload.text || '').length} chars)`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', id: path.basename(file) }));
+      } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: e.message }));
       }
