@@ -152,6 +152,8 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-ghost btn-sm" onclick="exportOne()"><span data-i="exportBtn">📄 Export</span></button>
       <button class="btn btn-green btn-sm" onclick="syncCurrent()"><span data-i="syncBtn">☁️ Subir</span></button>
       <button class="btn btn-sm btn-primary" onclick="saveCurrent()"><span data-i="saveBtn">💾 Save</span></button>
+      <span id="auto-save-indicator" class="hidden" style="font-size:0.7rem;color:var(--green);white-space:nowrap">💾 Auto</span>
+      <span id="server-status" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--text2);cursor:help" title="Comprobando servidor..."></span>
     </div>
   </div>
 
@@ -165,18 +167,6 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-ghost btn-sm" onclick="recordField('objective')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="objective-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('objective')">🔊</button></span>
     </div>
-  </div>
-
-  <!-- VIDEO -->
-  <div class="card">
-    <div class="card-title"><span data-i="videoTitle">🎥 General procedure video</span></div>
-    <p class="card-desc" data-i="videoDesc">Record the whole procedure in one take.</p>
-    <button class="btn btn-ghost btn-sm" onclick="recordActivityVideo()"><span data-i="recordVideoBtn">🎥 Record video</span></button>
-    <span id="activity-video-indicator" class="hidden">
-      <button class="btn btn-ghost btn-sm" onclick="playActivityVideo()"><span data-i="viewVideoBtn">▶ View video</span></button>
-      <button class="btn btn-red btn-sm" onclick="deleteActivityVideo()"><span data-i="delVideoBtn">🗑️</span></button>
-    </span>
-    <div id="activity-video-preview" class="video-preview hidden"></div>
   </div>
 
   <!-- STEPS -->
@@ -216,6 +206,18 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-ghost btn-sm" onclick="recordField('emails')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="emails-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('emails')">🔊</button></span>
     </div>
+  </div>
+
+  <!-- VIDEO -->
+  <div class="card">
+    <div class="card-title"><span data-i="videoTitle">🎥 General procedure video</span></div>
+    <p class="card-desc" data-i="videoDesc">Record the whole procedure in one take.</p>
+    <button class="btn btn-ghost btn-sm" onclick="recordActivityVideo()"><span data-i="recordVideoBtn">🎥 Record video</span></button>
+    <span id="activity-video-indicator" class="hidden">
+      <button class="btn btn-ghost btn-sm" onclick="playActivityVideo()"><span data-i="viewVideoBtn">▶ View video</span></button>
+      <button class="btn btn-red btn-sm" onclick="deleteActivityVideo()"><span data-i="delVideoBtn">🗑️</span></button>
+    </span>
+    <div id="activity-video-preview" class="video-preview hidden"></div>
   </div>
 
   <button class="btn btn-primary" onclick="saveCurrent()" style="width:100%;justify-content:center;margin-top:8px"><span data-i="saveActBtn">💾 SAVE ACTIVITY</span></button>
@@ -647,6 +649,9 @@ function init() {
   if (saved && L[saved]) setLang(saved);
   else setLang('es');
   renderList();
+  // Check server status periodically
+  checkServerStatus();
+  setInterval(checkServerStatus, 60000);
 }
 
 // ─── PERSISTENCE ───
@@ -692,6 +697,20 @@ function deleteActivity(id) {
   if (currentId === id) backToList(); else renderList();
 }
 
+function duplicateActivity(id) {
+  const orig = getActivity(id);
+  if (!orig) return;
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.id = newId();
+  copy.title = (orig.title || 'Actividad') + ' (copia)';
+  copy.createdAt = new Date().toISOString();
+  copy.updatedAt = copy.createdAt;
+  activities.push(copy);
+  saveState();
+  renderList();
+  toastLang('toastSaved', 'success');
+}
+
 function getActivity(id) { return activities.find(a => a.id === id); }
 
 function openEditor(id) {
@@ -699,6 +718,9 @@ function openEditor(id) {
   document.getElementById('view-list').classList.add('hidden');
   document.getElementById('view-editor').classList.remove('hidden');
   renderEditor();
+  // Auto-save cada 30s
+  if (_autoSaveTimer) clearInterval(_autoSaveTimer);
+  _autoSaveTimer = setInterval(autoSave, 30000);
 }
 
 function backToList() {
@@ -706,6 +728,7 @@ function backToList() {
   document.getElementById('view-editor').classList.add('hidden');
   document.getElementById('view-list').classList.remove('hidden');
   renderList();
+  if (_autoSaveTimer) { clearInterval(_autoSaveTimer); _autoSaveTimer = null; }
 }
 
 // ─── RENDER LIST ───
@@ -731,6 +754,7 @@ function renderList() {
         </div>
         <div style="display:flex;gap:4px;align-items:center">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportOne('${a.id}')">📄</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();duplicateActivity('${a.id}')">📋</button>
           <button class="btn btn-red btn-sm" onclick="event.stopPropagation();deleteActivity('${a.id}')">🗑️</button>
         </div>
       </div>
@@ -1587,6 +1611,34 @@ function downloadFile(name, content, mime) {
 }
 
 // ─── SYNC (subir a PC / nube) ───
+let _autoSaveTimer = null;
+
+function checkServerStatus() {
+  const dot = document.getElementById('server-status');
+  if (!dot) return;
+  fetch('http://192.168.178.38:18999/health', { mode: 'cors' })
+    .then(r => { if (r.ok) { dot.style.background = 'var(--green)'; dot.title = 'Servidor conectado'; }
+      else { dot.style.background = 'var(--red)'; dot.title = 'Servidor no responde'; } })
+    .catch(() => { dot.style.background = 'var(--red)'; dot.title = 'Servidor desconectado'; });
+}
+
+function autoSave() {
+  const a = getActivity(currentId);
+  if (!a) return;
+  a.title = document.getElementById('edit-title').value.trim();
+  a.objective = document.getElementById('edit-objective').value;
+  a.errors = document.getElementById('edit-errors').value;
+  a.emails = document.getElementById('edit-emails').value;
+  a.updatedAt = new Date().toISOString();
+  saveState();
+  const ind = document.getElementById('auto-save-indicator');
+  if (ind) {
+    ind.classList.remove('hidden');
+    clearTimeout(ind._hide);
+    ind._hide = setTimeout(() => ind.classList.add('hidden'), 2000);
+  }
+}
+
 function syncCurrent() {
   const a = getActivity(currentId);
   if (!a) return;
