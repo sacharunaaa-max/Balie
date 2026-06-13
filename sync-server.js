@@ -180,6 +180,34 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Telegram webhook endpoint
+  if (req.method === 'POST' && req.url === '/telegram') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const update = JSON.parse(body);
+        log(`📱 Telegram: ${update.message?.chat?.id} → ${update.message?.text?.slice(0,100)}`);
+        // Store incoming message for processing
+        const home = process.env.HOME || '/home/sacharuna';
+        const tDir = home + '/.balie/telegram-inbox/';
+        if (!fs.existsSync(tDir)) fs.mkdirSync(tDir, { recursive: true });
+        fs.writeFileSync(tDir + Date.now() + '.json', JSON.stringify({
+          chat_id: update.message?.chat?.id,
+          text: update.message?.text,
+          date: update.message?.date,
+          from: update.message?.from
+        }, null, 2));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+      } catch(e) {
+        res.writeHead(200);
+        res.end('ok');
+      }
+    });
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
