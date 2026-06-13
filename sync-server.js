@@ -187,19 +187,33 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const update = JSON.parse(body);
-        log(`📱 Telegram: ${update.message?.chat?.id} → ${update.message?.text?.slice(0,100)}`);
-        // Store incoming message for processing
+        const chatId = update.message?.chat?.id;
+        const text = update.message?.text || '';
+        log(`📱 Telegram: ${chatId} → "${text?.slice(0,100)}"`);
+        
+        // Store incoming message
         const home = process.env.HOME || '/home/sacharuna';
         const tDir = home + '/.balie/telegram-inbox/';
         if (!fs.existsSync(tDir)) fs.mkdirSync(tDir, { recursive: true });
         fs.writeFileSync(tDir + Date.now() + '.json', JSON.stringify({
-          chat_id: update.message?.chat?.id,
-          text: update.message?.text,
-          date: update.message?.date,
+          chat_id: chatId, text, date: update.message?.date,
           from: update.message?.from
         }, null, 2));
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok' }));
+        
+        // Auto-reply
+        const token = (fs.readFileSync(home + '/.openclaw/workspace/BALIE/telegram-bot.sh','utf8').match(/BOT_TOKEN="(.+)"/)||[])[1];
+        const reply = text.startsWith('/')
+          ? '👋 Comandos: /start /ayuda /procesos'
+          : '👋 ¡Hola Bo! Tu mensaje llegó al servidor. Pronto integraré BALIE aquí también.';
+        
+        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: reply })
+        }).catch(() => {});
+        
+        res.writeHead(200);
+        res.end('ok');
       } catch(e) {
         res.writeHead(200);
         res.end('ok');
