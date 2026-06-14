@@ -87,7 +87,7 @@
     background: #202c33;
     padding: 10px 12px;
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: flex-end;
     flex-shrink: 0;
   }
@@ -106,25 +106,67 @@
     line-height: 1.4;
   }
   #input-area textarea::placeholder { color: #8696a0; }
-  #input-area button {
-    background: #00a884;
+  #input-area .btn {
     border: none;
     border-radius: 50%;
-    width: 42px; height: 42px;
-    color: #fff;
+    width: 40px; height: 40px;
+    color: #8696a0;
     font-size: 20px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: background 0.15s;
+    transition: all 0.15s;
+    background: transparent;
   }
-  #input-area button:hover { background: #06cf9c; }
-  #input-area button:disabled {
+  #input-area .btn:hover { background: #2a3942; color: #e9edef; }
+  #input-area .btn.send {
+    background: #00a884;
+    color: #fff;
+  }
+  #input-area .btn.send:hover { background: #06cf9c; color: #fff; }
+  #input-area .btn.send:disabled {
     background: #2a3942;
     color: #8696a0;
     cursor: not-allowed;
+  }
+  /* Archivos adjuntos */
+  .msg .file-attachment {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 4px 0;
+    cursor: pointer;
+  }
+  .msg .file-attachment .icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .msg .file-attachment .info {
+    flex: 1;
+    min-width: 0;
+  }
+  .msg .file-attachment .info .name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .msg .file-attachment .info .size {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+  }
+  .msg .file-attachment img.thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
   }
   #reconnect-bar {
     display: none;
@@ -152,8 +194,10 @@
 <div id="reconnect-bar">🔴 Sin conexión — reintentando...</div>
 <div id="messages"></div>
 <div id="input-area">
+  <button class="btn" id="attachBtn" title="Adjuntar archivo">📎</button>
+  <input type="file" id="fileInput" style="display:none" multiple>
   <textarea id="msgInput" rows="1" placeholder="Escribe un mensaje..." enterkeyhint="send"></textarea>
-  <button id="sendBtn" disabled>➤</button>
+  <button class="btn send" id="sendBtn" disabled>➤</button>
 </div>
 
 <script>
@@ -226,7 +270,71 @@ function renderMessages(messages, append = true) {
 
     const div = document.createElement('div');
     div.className = `msg ${msg.from}`;
-    div.textContent = msg.text;
+    
+    // Si es un archivo, mostrar attachment
+    if (msg.type === 'file') {
+      const fileInfo = msg.file || {};
+      const fileName = fileInfo.name || 'archivo';
+      const fileSize = fileInfo.size || 0;
+      const mime = fileInfo.mimeType || '';
+      const isImage = mime.startsWith('image/');
+      
+      const attach = document.createElement('div');
+      attach.className = 'file-attachment';
+      
+      if (isImage && fileInfo.path) {
+        // Mostrar thumbnail para imágenes
+        const img = document.createElement('img');
+        img.className = 'thumb';
+        img.src = `${TUNNEL_URL}/chat/files/${fileInfo.path}`;
+        img.alt = fileName;
+        img.loading = 'lazy';
+        attach.appendChild(img);
+      } else {
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        if (mime.startsWith('image/')) icon.textContent = '🖼️';
+        else if (mime.includes('pdf')) icon.textContent = '📄';
+        else if (mime.includes('spreadsheet') || mime.includes('excel')) icon.textContent = '📊';
+        else if (mime.includes('word') || mime.includes('document')) icon.textContent = '📝';
+        else if (mime.startsWith('video/')) icon.textContent = '🎬';
+        else if (mime.startsWith('audio/')) icon.textContent = '🎵';
+        else if (mime.includes('zip') || mime.includes('rar')) icon.textContent = '📦';
+        else icon.textContent = '📎';
+        attach.appendChild(icon);
+      }
+      
+      const info = document.createElement('div');
+      info.className = 'info';
+      
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = fileName;
+      info.appendChild(name);
+      
+      if (fileSize > 0) {
+        const size = document.createElement('div');
+        size.className = 'size';
+        size.textContent = fileSize > 1024*1024
+          ? `${(fileSize/1024/1024).toFixed(1)} MB`
+          : `${Math.round(fileSize/1024)} KB`;
+        info.appendChild(size);
+      }
+      
+      attach.appendChild(info);
+      div.appendChild(attach);
+      
+      // Click para descargar/abrir
+      if (fileInfo.path) {
+        attach.style.cursor = 'pointer';
+        attach.title = 'Abrir archivo';
+        attach.addEventListener('click', () => {
+          window.open(`${TUNNEL_URL}/chat/files/${fileInfo.path}`, '_blank');
+        });
+      }
+    } else {
+      div.textContent = msg.text;
+    }
     
     const time = document.createElement('div');
     time.className = 'time';
@@ -341,9 +449,115 @@ async function init() {
 
 sendBtn.addEventListener('click', sendMessage);
 
-// Load initial messages (without date headers for existing)
-// Actually, renderMessages already handles dates
-// Just poll to get any existing messages
+// ─── File Upload ────────────────────────────────────────
+const attachBtn = document.getElementById('attachBtn');
+const fileInput = document.getElementById('fileInput');
+let uploading = false;
+
+attachBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+  
+  for (const file of files) {
+    if (uploading) break;
+    await uploadFile(file);
+  }
+  
+  fileInput.value = '';
+});
+
+async function uploadFile(file) {
+  if (uploading) return;
+  
+  // Límite de 10 MB
+  if (file.size > 10 * 1024 * 1024) {
+    addStatusMsg(`⚠️ ${file.name} es demasiado grande (máx 10 MB)`);
+    return;
+  }
+  
+  uploading = true;
+  
+  // Mostrar estado de subida
+  const tempMsg = {
+    id: -1,
+    from: 'user',
+    type: 'file',
+    text: `📎 ${file.name}`,
+    file: { name: file.name, size: file.size, mimeType: file.type },
+    ts: new Date().toISOString()
+  };
+  renderMessages([tempMsg]);
+  const tempDiv = msgContainer.lastChild;
+  if (tempDiv) tempDiv.classList.add('pending');
+  
+  try {
+    // Leer archivo como base64
+    const base64 = await fileToBase64(file);
+    
+    const res = await fetch(`${TUNNEL_URL}/chat/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: file.name,
+        mimeType: file.type,
+        data: base64
+      }),
+      signal: AbortSignal.timeout(30000) // 30s para archivos grandes
+    });
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    
+    // Reemplazar mensaje temporal con confirmado
+    if (tempDiv && tempDiv.parentNode) {
+      tempDiv.remove();
+    }
+    
+    const confirmedMsg = {
+      id: data.id,
+      from: 'user',
+      type: 'file',
+      text: `📎 ${file.name}`,
+      file: { name: file.name, size: file.size, mimeType: file.type, path: data.fileName },
+      ts: new Date().toISOString()
+    };
+    renderMessages([confirmedMsg]);
+    
+  } catch (e) {
+    console.error('Upload error:', e);
+    setConnected(false);
+    reconnectBar.classList.add('visible');
+    if (tempDiv) tempDiv.remove();
+    addStatusMsg(`❌ Error al subir ${file.name}`);
+  }
+  
+  uploading = false;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Quitar el prefijo data:...;base64,
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function addStatusMsg(text) {
+  const div = document.createElement('div');
+  div.style.cssText = 'text-align:center;font-size:12px;color:rgba(255,255,255,0.5);padding:4px 0;';
+  div.textContent = text;
+  msgContainer.appendChild(div);
+  setTimeout(() => { if (div.parentNode) div.remove(); }, 4000);
+}
+
+// Load initial messages
 
 // ─── Load history on start ──────────────────────────────
 (async function loadHistory() {
