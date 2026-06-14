@@ -13,6 +13,9 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// Chat addon
+const chatAddon = require('./chat-server-addon.js');
+
 const PORT = 18999;
 const REPO_DIR = path.resolve(__dirname);
 const DATA_DIR = path.join(REPO_DIR, 'balie-data');
@@ -94,45 +97,6 @@ function saveAndCommit(name, rawData) {
   }
 }
 
-// ─── TRANSCRIBE ───
-function transcribeAudio(audioBase64, lang) {
-  const tmpDir = '/tmp/balie-transcribe';
-  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-  
-  const inputFile = path.join(tmpDir, 'input.webm');
-  const outputBase = path.join(tmpDir, 'input');
-  
-  // Decodificar base64 a archivo
-  const buf = Buffer.from(audioBase64, 'base64');
-  fs.writeFileSync(inputFile, buf);
-  
-  // Mapa de códigos de idioma
-  const langMap = { es: 'es', nl: 'nl', en: 'en', pt: 'pt' };
-  const whisperLang = langMap[lang] || 'es';
-  
-  try {
-    const out = execSync(
-      `whisper --model tiny --language ${whisperLang} --output_format txt --output_dir "${tmpDir}" "${inputFile}"`,
-      { encoding: 'utf8', timeout: 30000 }
-    );
-    
-    // Leer el resultado
-    const txtPath = outputBase + '.txt';
-    if (fs.existsSync(txtPath)) {
-      const text = fs.readFileSync(txtPath, 'utf8').trim();
-      // Limpiar temp
-      try { fs.unlinkSync(inputFile); fs.unlinkSync(txtPath); } catch(e) {}
-      return text || null;
-    }
-    return null;
-  } catch (e) {
-    log(`⚠️ Whisper error: ${(e.message || '').slice(0, 150)}`);
-    // Limpiar temp
-    try { fs.unlinkSync(inputFile); } catch(e2) {}
-    return null;
-  }
-}
-
 function generateProcessMarkdown(activities) {
   let md = '# BALIE — Procesos Documentados\n\n';
   md += `> Sincronizado: ${new Date().toLocaleString('es-ES', { timeZone: 'Europe/Amsterdam' })}\n\n`;
@@ -171,7 +135,7 @@ function generateProcessMarkdown(activities) {
 const server = http.createServer((req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -180,58 +144,26 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Telegram webhook endpoint
-  if (req.method === 'POST' && req.url === '/telegram') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const update = JSON.parse(body);
-        const chatId = update.message?.chat?.id;
-        const text = update.message?.text || '';
-        log(`📱 Telegram: ${chatId} → "${text?.slice(0,100)}"`);
-        
-        // Store incoming message
-        const home = process.env.HOME || '/home/sacharuna';
-        const tDir = home + '/.balie/telegram-inbox/';
-        if (!fs.existsSync(tDir)) fs.mkdirSync(tDir, { recursive: true });
-        fs.writeFileSync(tDir + Date.now() + '.json', JSON.stringify({
-          chat_id: chatId, text, date: update.message?.date,
-          from: update.message?.from
-        }, null, 2));
-        
-        // Auto-reply
-        const token = (fs.readFileSync(home + '/.openclaw/workspace/BALIE/telegram-bot.sh','utf8').match(/BOT_TOKEN="(.+)"/)||[])[1];
-        const reply = text.startsWith('/')
-          ? '👋 Comandos: /start /ayuda /procesos'
-          : '👋 ¡Hola Bo! Tu mensaje llegó al servidor. Pronto integraré BALIE aquí también.';
-        
-        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: reply })
-        }).catch(() => {});
-        
-        res.writeHead(200);
-        res.end('ok');
-      } catch(e) {
-        res.writeHead(200);
-        res.end('ok');
-      }
-    });
-    return;
+  // Colectar body para cualquier ruta
+  function collectBody(cb) {
+    if (req.method === 'GET') return cb('');
+    let data = '';
+    req.on('data', chunk => data += chunk);
+    req.on('end', () => cb(data));
   }
 
-  if (req.method === 'GET' && req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
-    return;
-  }
+  collectBody((body) => {
+    const url = req.url;
 
-  if (req.method === 'POST' && req.url === '/') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
+    // Health
+    if (req.method === 'GET' && url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
+      return;
+    }
+
+    // POST / → BALIE sync (guardar actividades)
+    if (req.method === 'POST' && url === '/') {
       try {
         const payload = JSON.parse(body);
         const name = payload.name || 'actividad';
@@ -252,71 +184,18 @@ const server = http.createServer((req, res) => {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: e.message }));
       }
-    });
-    return;
-  }
+      return;
+    }
 
-  if (req.method === 'POST' && req.url === '/transcribe') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        const audioBase64 = payload.audio;
-        const lang = payload.lang || 'es';
-        
-        if (!audioBase64) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'error', message: 'No audio data' }));
-          return;
-        }
-        
-        log(`🎤 Transcribiendo audio (${Math.round(audioBase64.length * 3/4 / 1024)} KB, lang: ${lang})...`);
-        const text = transcribeAudio(audioBase64, lang);
-        
-        if (text) {
-          log(`✅ Transcripción: "${text.slice(0, 100)}${text.length > 100 ? '...' : ''}"`);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'ok', text: text }));
-        } else {
-          log(`⚠️ Transcripción vacía`);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'ok', text: '' }));
-        }
-      } catch (e) {
-        log(`❌ Error en transcripción: ${e.message}`);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'error', message: e.message }));
-      }
-    });
-    return;
-  }
+    // Chat endpoints
+    if (chatAddon.handleChat(req, res, body)) {
+      return;
+    }
 
-  if (req.method === 'POST' && req.url === '/homogenize') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        const home = process.env.HOME || '/home/sacharuna';
-        const queueDir = home + '/.balie/homogenize-queue/';
-        if (!fs.existsSync(queueDir)) fs.mkdirSync(queueDir, { recursive: true });
-        const file = queueDir + 'req-' + Date.now() + '.json';
-        fs.writeFileSync(file, JSON.stringify(payload, null, 2));
-        log(`🤖 Homogenize request: ${payload.title} - ${payload.field} (${(payload.text || '').length} chars)`);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok', id: path.basename(file) }));
-      } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'error', message: e.message }));
-      }
-    });
-    return;
-  }
-
-  // 404
-  res.writeHead(404);
-  res.end('Not Found');
+    // 404
+    res.writeHead(404);
+    res.end('Not Found');
+  });
 });
 
 server.listen(PORT, '0.0.0.0', () => {
