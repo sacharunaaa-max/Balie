@@ -217,6 +217,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="card-title"><span data-i="videoTitle">🎥 General procedure video</span></div>
     <p class="card-desc" data-i="videoDesc">Record the whole procedure in one take.</p>
     <button class="btn btn-ghost btn-sm" onclick="recordActivityVideo()"><span data-i="recordVideoBtn">🎥 Record video</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="testMicrophone()" style="color:var(--yellow)">🎤 Test mic</button>
     <span id="activity-video-indicator" class="hidden">
       <button class="btn btn-ghost btn-sm" onclick="playActivityVideo()"><span data-i="viewVideoBtn">▶ View video</span></button>
       <button class="btn btn-red btn-sm" onclick="deleteActivityVideo()"><span data-i="delVideoBtn">🗑️</span></button>
@@ -1059,7 +1060,11 @@ function startRecording(callback) {
       _recState.active = false;
       hideRecorderBar();
       if (_recState.recognition) { try { _recState.recognition.stop(); } catch(e) {} }
-      toastLang('toastError', 'error', { msg: err.message });
+      let userMsg = err.message;
+      if (err.name === 'NotAllowedError') userMsg = 'Micrófono bloqueado. Permitilo en la barra de direcciones 🔇';
+      else if (err.name === 'NotFoundError') userMsg = 'No se encontró micrófono 🎤';
+      else if (err.name === 'NotReadableError') userMsg = 'Micrófono en uso por otra app 🎧';
+      toastLang('toastError', 'error', { msg: userMsg });
     });
 }
 
@@ -1202,6 +1207,49 @@ function deleteActivityVideo() {
   delete activityVideos[currentId];
   saveState();
   updateVideoIndicator();
+}
+
+function testMicrophone() {
+  // Prueba independiente del micrófono
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('❌ Tu navegador NO soporta acceso al micrófono (getUserMedia no disponible)');
+    return;
+  }
+  const sr = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let msg = '🔍 SpeechRecognition: ' + (sr ? '✅ DISPONIBLE' : '❌ NO DISPONIBLE') + '\n';
+  msg += '🔍 MediaDevices: ✅ Disponible\n\n';
+  msg += '⏳ Solicitando micrófono...';
+  toast(msg, 'info');
+  
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      stream.getTracks().forEach(t => t.stop()); // liberar el mic
+      const mimeTypes = [
+        MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : null,
+        MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : null,
+        MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : null,
+        MediaRecorder.isTypeSupported('audio/ogg;codecs=opus') ? 'audio/ogg;codecs=opus' : null
+      ].filter(Boolean);
+      
+      let result = '✅ MICRÓFONO FUNCIONA\n\n';
+      result += 'Formatos compatibles:\n';
+      mimeTypes.forEach(m => result += '  • ' + m + '\n');
+      if (mimeTypes.length === 0) result += '  ❌ MediaRecorder no disponible\n';
+      result += '\n🎤 Ya podés usar el botón 🎤 en los campos';
+      alert(result);
+    })
+    .catch(err => {
+      let errMsg = '❌ Error de micrófono: ' + err.message + '\n\n';
+      if (err.name === 'NotAllowedError') {
+        errMsg += '🔇 El navegador bloqueó el micrófono.\n';
+        errMsg += '➡️ Hacé click en el icono 🎤🔴 en la barra de direcciones y seleccioná "Permitir"';
+      } else if (err.name === 'NotFoundError') {
+        errMsg += '🔇 No se encontró ningún micrófono conectado.';
+      } else {
+        errMsg += '🔇 Error desconocido. Probá en otro navegador (Chrome/Edge).';
+      }
+      alert(errMsg);
+    });
 }
 
 // ─── PHOTOS ───
