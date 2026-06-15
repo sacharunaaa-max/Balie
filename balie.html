@@ -876,8 +876,8 @@ function renderStep(s, i) {
       ${audioBtns}
       <button class="btn btn-ghost btn-sm" onclick="homogenizeStep(${i})" style="color:var(--accent)">🤖</button>
       <button class="btn btn-ghost btn-sm" onclick="takePhoto(${i})" title="📸">📸</button>
-      <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},-1)">↑</button>
-      <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},1)">↓</button>
+      <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},-1)" title="Mover arriba" style="font-size:1rem">⬆</button>
+      <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},1)" title="Mover abajo" style="font-size:1rem">⬇</button>
       <button class="btn btn-red btn-sm" onclick="removeStep(${i})">🗑️</button>
     </div>
     <textarea class="step-text" data-ph="stepPlaceholder" placeholder="${t('stepPlaceholder')}" oninput="updateStepText(${i},this.value)">${escapeHtml(s.text || '')}</textarea>
