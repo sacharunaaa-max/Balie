@@ -1019,34 +1019,37 @@ function startRecording(callback) {
   _recState.transcript = '';
   _recState.mediaType = 'audio';
   
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognition = null;
-  if (SpeechRecognition) {
-    try {
-      recognition = new SpeechRecognition();
-      recognition.lang = currentLang === 'nl' ? 'nl-NL' : currentLang === 'en' ? 'en-US' : currentLang === 'pt' ? 'pt-PT' : 'es-ES';
-      recognition.interimResults = true;
-      recognition.continuous = true;
-      recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            _recState.transcript += (_recState.transcript ? ' ' : '') + event.results[i][0].transcript;
-          }
-        }
-      };
-      recognition.start();
-      _recState.recognition = recognition;
-    } catch(e) { _recState.recognition = null; }
-  }
-  
   showRecorderBar();
   document.getElementById('rec-label').textContent = t('toastRec');
   _recState.startTime = Date.now();
   _recState.timerInterval = setInterval(updateRecTime, 200);
   
+  // Primero pedir el stream del micrófono
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
       _recState.stream = stream;
+      
+      // SpeechRecognition (después de tener el stream, para no interferir)
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const rec = new SpeechRecognition();
+          rec.lang = currentLang === 'nl' ? 'nl-NL' : currentLang === 'en' ? 'en-US' : currentLang === 'pt' ? 'pt-PT' : 'es-ES';
+          rec.interimResults = true;
+          rec.continuous = true;
+          rec.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              if (event.results[i].isFinal) {
+                _recState.transcript += (_recState.transcript ? ' ' : '') + event.results[i][0].transcript;
+              }
+            }
+          };
+          rec.onerror = () => {}; // silenciar errores de SpeechRecognition
+          rec.start();
+          _recState.recognition = rec;
+        } catch(e) { _recState.recognition = null; }
+      }
+      
       const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
                    MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
       const mr = new MediaRecorder(stream, { mimeType: mime });
