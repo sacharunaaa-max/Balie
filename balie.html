@@ -359,6 +359,7 @@ const L = {
     toastRecVideo: '🎥 Grabando video...',
     toastSynced: '☁️ Subido: {name}',
     toastHomSent: '🤖 Enviado para corregir',
+    toastStepAdded: '➕ Paso añadido',
     toastHomError: '🤖 Error al enviar. ¿La PC está encendida?',
     toastSyncError: '☁️ Error al subir. ¿La PC está encendida?',
     stopBtn: '⏹ DETENER GRABACIÓN',
@@ -438,6 +439,7 @@ const L = {
     toastRecVideo: '🎥 Recording video...',
     toastSynced: '☁️ Synced: {name}',
     toastHomSent: '🤖 Sent for correction',
+    toastStepAdded: '➕ Step added',
     toastHomError: '🤖 Send error. Is the PC on?',
     toastSyncError: '☁️ Sync error. Is the PC on?',
     stopBtn: '⏹ STOP RECORDING',
@@ -517,6 +519,7 @@ const L = {
     toastRecVideo: '🎥 Video opnemen...',
     toastSynced: '☁️ Geüpload: {name}',
     toastHomSent: '🤖 Verzonden voor correctie',
+    toastStepAdded: '➕ Stap toegevoegd',
     toastHomError: '🤖 Verzendfout. Staat de pc aan?',
     toastSyncError: '☁️ Uploadfout. Staat de pc aan?',
     stopBtn: '⏹ STOP OPNEMEN',
@@ -596,6 +599,7 @@ const L = {
     toastRecVideo: '🎥 Gravando vídeo...',
     toastSynced: '☁️ Enviado: {name}',
     toastHomSent: '🤖 Enviado para corrigir',
+    toastStepAdded: '➕ Passo adicionado',
     toastHomError: '🤖 Erro ao enviar. O PC está ligado?',
     toastSyncError: '☁️ Erro ao enviar. O PC está ligado?',
     stopBtn: '⏹ PARAR GRAVAÇÃO',
@@ -684,9 +688,13 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem('balie-activities', JSON.stringify(activities));
-  localStorage.setItem('balie-audios', JSON.stringify(audioBlobs));
-  localStorage.setItem('balie-videos', JSON.stringify(activityVideos));
+  try {
+    localStorage.setItem('balie-activities', JSON.stringify(activities));
+    localStorage.setItem('balie-audios', JSON.stringify(audioBlobs));
+    localStorage.setItem('balie-videos', JSON.stringify(activityVideos));
+  } catch(e) {
+    console.warn('saveState error:', e);
+  }
 }
 
 function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -887,11 +895,16 @@ function renderStep(s, i) {
 
 function addStep() {
   const a = getActivity(currentId);
-  if (!a) return;
+  if (!a) { toast(t('addStepBtn') + ' error', 'error'); return; }
   a.steps.push({ text: '', audios: [], photos: [] });
   a.updatedAt = new Date().toISOString();
   saveState();
   renderSteps(a);
+  toastLang('toastStepAdded', 'success');
+  // Scroll to the new step
+  const container = document.getElementById('steps-container');
+  const lastStep = container.lastElementChild;
+  if (lastStep) lastStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function removeStep(idx) {
