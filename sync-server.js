@@ -187,8 +187,124 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    // Chat endpoints
+        // Chat endpoints
     if (chatAddon.handleChat(req, res, body)) {
+      return;
+    }
+
+    // POST /transcribe  → transcripción vía Whisper
+    if (req.method === 'POST' && url === '/transcribe') {
+      try {
+        const payload = JSON.parse(body);
+        const audioBase64 = payload.audio;
+        const lang = payload.lang || 'es';
+
+        if (!audioBase64 || audioBase64.length < 100) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'error', message: 'Audio demasiado corto o vacío' }));
+          return;
+        }
+
+        // Decodificar base64 a archivo temporal
+        const tmpDir = '/tmp/balie-transcribe';
+        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+        const ts = Date.now();
+        const tmpFile = path.join(tmpDir, `audio-${ts}.webm`);
+        const wavFile = path.join(tmpDir, `audio-${ts}.wav`);
+        const audioBuffer = Buffer.from(audioBase64, 'base64');
+        fs.writeFileSync(tmpFile, audioBuffer);
+
+        log(`🎤 Transcribiendo audio (${(audioBuffer.length / 1024).toFixed(0)} KB, lang: ${lang})`);
+
+        const { execSync } = require('child_process');
+        let text = '';
+
+        // Convertir a WAV con ffmpeg (maneja cualquier codec: webm, 3gpp, mp4, ogg)
+        try {
+          execSync(
+            `ffmpeg -y -i "${tmpFile}" -ar 16000 -ac 1 -sample_fmt s16 "${wavFile}" 2>/dev/null`,
+            { encoding: 'utf8', timeout: 30000 }
+          );
+        } catch (convErr) {
+          log(`⚠️ ffmpeg conversion failed: ${convErr.message.slice(0, 100)}, trying raw`);
+        }
+
+        const inputFile = fs.existsSync(wavFile) ? wavFile : tmpFile;
+
+        // Ejecutar Whisper
+        try {
+          const output = execSync(
+            `whisper --model tiny --language ${lang} --task transcribe --output_format txt "${inputFile}" 2>/dev/null`,
+            { encoding: 'utf8', timeout: 120000, cwd: tmpDir }
+          );
+          // Whisper guarda un .txt al lado del archivo
+          const txtFile = inputFile.replace(/\.\w+$/, '.txt');
+          if (fs.existsSync(txtFile)) {
+            text = fs.readFileSync(txtFile, 'utf8').trim();
+            fs.unlinkSync(txtFile);
+          } else {
+            text = output.trim();
+          }
+        } catch (whisperErr) {
+          log(`❌ Whisper error: ${whisperErr.message.slice(0, 200)}`);
+        }
+
+        // Limpiar temporales
+        try { fs.unlinkSync(tmpFile); } catch(e) {}
+        try { fs.unlinkSync(wavFile); } catch(e) {}
+
+        if (text) {
+          log(`✅ Transcripción: "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', text }));
+        } else {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'error', message: 'No se pudo transcribir el audio' }));
+        }
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: e.message }));
+      }
+      return;
+    }
+
+    // POST /homogenize  → guardar texto para que OpenClaw lo corrija
+    if (req.method === 'POST' && url === '/homogenize') {
+      try {
+        const payload = JSON.parse(body);
+        const { title, field, text, reqId, ts } = payload;
+
+        if (!text) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'error', message: 'No text provided' }));
+          return;
+        }
+
+        // Guardar en la cola de homogenización
+        const queueDir = path.resolve(process.env.HOME || '/home/sacharuna', '.balie', 'homogenize-queue');
+        if (!fs.existsSync(queueDir)) fs.mkdirSync(queueDir, { recursive: true });
+
+        const filename = `hom-${Date.now()}-${Math.random().toString(36).slice(2,6)}.json`;
+        const filepath = path.join(queueDir, filename);
+
+        const entry = {
+          reqId: reqId || 0,
+          title: title || 'Sin título',
+          field: field || 'text',
+          text: text,
+          ts: ts || new Date().toISOString(),
+          receivedAt: new Date().toISOString()
+        };
+
+        fs.writeFileSync(filepath, JSON.stringify(entry, null, 2), 'utf8');
+        log(`🤖 Homogenize queue: [${title}] ${field} → ${filename}`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', file: filename }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: e.message }));
+      }
       return;
     }
 
