@@ -19,6 +19,13 @@ const chatAddon = require('./chat-server-addon.js');
 const PORT = 18999;
 const REPO_DIR = path.resolve(__dirname);
 const DATA_DIR = path.join(REPO_DIR, 'balie-data');
+const HOME = process.env.HOME || '/home/sacharuna';
+const HOMOGENIZE_QUEUE = path.join(HOME, '.balie', 'homogenize-queue');
+const HOMOGENIZE_RESULTS = path.join(HOME, '.balie', 'homogenize-results');
+
+// Asegurar directorios
+if (!fs.existsSync(HOMOGENIZE_QUEUE)) fs.mkdirSync(HOMOGENIZE_QUEUE, { recursive: true });
+if (!fs.existsSync(HOMOGENIZE_RESULTS)) fs.mkdirSync(HOMOGENIZE_RESULTS, { recursive: true });
 
 // Asegurar que balie-data existe
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -281,11 +288,8 @@ const server = http.createServer((req, res) => {
         }
 
         // Guardar en la cola de homogenización
-        const queueDir = path.resolve(process.env.HOME || '/home/sacharuna', '.balie', 'homogenize-queue');
-        if (!fs.existsSync(queueDir)) fs.mkdirSync(queueDir, { recursive: true });
-
         const filename = `hom-${Date.now()}-${Math.random().toString(36).slice(2,6)}.json`;
-        const filepath = path.join(queueDir, filename);
+        const filepath = path.join(HOMOGENIZE_QUEUE, filename);
 
         const entry = {
           reqId: reqId || 0,
@@ -305,6 +309,36 @@ const server = http.createServer((req, res) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: e.message }));
       }
+      return;
+    }
+
+    // GET /get-homogenized  → obtener texto corregido
+    if (req.method === 'GET' && url.startsWith('/get-homogenized')) {
+      const parsedUrl = new URL(url, 'http://localhost');
+      const reqId = parsedUrl.searchParams.get('reqId');
+
+      if (!reqId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: 'reqId required' }));
+        return;
+      }
+
+      // Buscar archivo de resultado para este reqId
+      try {
+        const files = fs.readdirSync(HOMOGENIZE_RESULTS).filter(f => f.startsWith('result-' + reqId));
+        if (files.length > 0) {
+          const result = JSON.parse(fs.readFileSync(path.join(HOMOGENIZE_RESULTS, files[0]), 'utf8'));
+          if (result.corrected) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'ok', corrected: result.corrected, field: result.field }));
+            return;
+          }
+        }
+      } catch(e) {}
+
+      // No hay resultado aún
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'pending' }));
       return;
     }
 

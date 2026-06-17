@@ -1650,9 +1650,10 @@ function homogenizeStep(idx) {
 let _homReq = 0;
 function sendHomogenize(title, field, text) {
   const reqId = ++_homReq;
+  // Tunnel HTTPS primero (funciona desde cualquier red), LAN después
   const servers = [
-    'http://192.168.178.38:18999',
-    'https://habitat-distributors-liability-trace.trycloudflare.com'
+    'https://habitat-distributors-liability-trace.trycloudflare.com',
+    'http://192.168.178.38:18999'
   ];
   
   function trySend(idx) {
@@ -1660,6 +1661,7 @@ function sendHomogenize(title, field, text) {
       toastLang('toastHomError', 'error');
       return;
     }
+    toastLang('toastRec', 'info');
     fetch(servers[idx] + '/homogenize', {
       method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'application/json' },
@@ -1669,11 +1671,63 @@ function sendHomogenize(title, field, text) {
     .then(data => {
       if (data.status === 'ok') {
         toastLang('toastHomSent', 'success');
+        // Empezar a buscar la corrección
+        setTimeout(() => pollHomogenizeResult(reqId, field), 5000);
       } else { trySend(idx + 1); }
     })
     .catch(() => trySend(idx + 1));
   }
   trySend(0);
+}
+
+// Buscar resultado de homogenización
+function pollHomogenizeResult(reqId, field) {
+  const servers = [
+    'https://habitat-distributors-liability-trace.trycloudflare.com',
+    'http://192.168.178.38:18999'
+  ];
+  
+  // Determinar el campo real (si es 'Paso N', usar la actividad actual)
+  const a = getActivity(currentId);
+  
+  function tryPoll(idx) {
+    if (idx >= servers.length) {
+      // Reintentar después (no hay resultado aún)
+      setTimeout(() => pollHomogenizeResult(reqId, field), 8000);
+      return;
+    }
+    fetch(servers[idx] + '/get-homogenized?reqId=' + reqId, { mode: 'cors' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok' && data.corrected) {
+        // Insertar texto corregido
+        if (field.startsWith('Paso ')) {
+          const idx = parseInt(field.split(' ')[1]) - 1;
+          if (a && a.steps && a.steps[idx]) {
+            a.steps[idx].text = data.corrected;
+            renderSteps(a);
+            toast('✅ Texto corregido', 'success');
+          }
+        } else {
+          const el = document.getElementById('edit-' + data.field);
+          if (el) {
+            el.value = data.corrected;
+            el.dispatchEvent(new Event('input'));
+            toast('✅ Texto corregido', 'success');
+          }
+        }
+        a.updatedAt = new Date().toISOString();
+        saveState();
+      } else if (data.status === 'pending') {
+        // Aún procesando, reintentar
+        setTimeout(() => pollHomogenizeResult(reqId, field), 5000);
+      } else {
+        tryPoll(idx + 1);
+      }
+    })
+    .catch(() => tryPoll(idx + 1));
+  }
+  tryPoll(0);
 }
 
 function saveCurrent() {
@@ -1830,10 +1884,11 @@ function transcribeViaServer(dataUrl, lang, callback) {
   
   toastLang('toastRec', 'info');
   
+  // Tunnel HTTPS primero (funciona desde cualquier red), después LAN
   const servers = [
+    'https://habitat-distributors-liability-trace.trycloudflare.com',
     'http://192.168.178.38:18999',
-    'http://localhost:18999',
-    'https://habitat-distributors-liability-trace.trycloudflare.com'
+    'http://localhost:18999'
   ];
   
   function tryTranscribe(idx) {
@@ -1852,6 +1907,7 @@ function transcribeViaServer(dataUrl, lang, callback) {
     .then(r => r.json())
     .then(data => {
       if (data.status === 'ok' && data.text) {
+        toastLang('toastTranscribed', 'success', { text: data.text.slice(0,60) + (data.text.length > 60 ? '...' : '') });
         if (callback) callback(data.text);
       } else {
         tryTranscribe(idx + 1);
