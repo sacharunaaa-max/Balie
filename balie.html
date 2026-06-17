@@ -47,16 +47,15 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .route-chip .del{color:var(--red);cursor:pointer;margin-left:4px;font-weight:bold}
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600}
 .badge-count{background:rgba(63,185,80,0.15);color:var(--green)}
-.recorder-bar{position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;border-top:2px solid var(--red);padding:12px 16px;display:none;align-items:center;justify-content:center;gap:16px;z-index:1000;flex-wrap:wrap}
-.recorder-bar.show{display:flex}
-.rec-dot{width:14px;height:14px;background:var(--red);border-radius:50%;animation:blink 1s infinite}
+.recorder-inline{display:none;align-items:center;gap:6px;margin-left:4px}
+.recorder-inline.show{display:inline-flex}
+.rec-dot{width:10px;height:10px;background:var(--red);border-radius:50%;animation:blink 1s infinite}
 @keyframes blink{0%{opacity:1}50%{opacity:0.2}100%{opacity:1}}
-.rec-time{font-family:monospace;font-size:1.1rem;color:#fff;min-width:60px;text-align:center}
-.rec-label{color:var(--text2);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rec-btn{margin:0 !important;padding:8px 18px !important;font-size:0.9rem !important}
-.rec-pause-btn{background:#d29922 !important}
-.rec-stop-btn{background:var(--red) !important}
-.rec-resume-btn{background:var(--green) !important}
+.rec-time{font-family:monospace;font-size:0.85rem;color:#f0f0f0;min-width:50px;text-align:center}
+.rec-btn-inline{margin:0!important;padding:4px 10px!important;font-size:0.8rem!important;border-radius:6px}
+.rec-pause-btn{background:#d29922!important;color:#fff}
+.rec-stop-btn{background:var(--red)!important;color:#fff}
+.rec-resume-btn{background:var(--green)!important;color:#fff}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:12px 24px;border-radius:var(--radius);font-size:0.85rem;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:opacity 0.3s;max-width:90%}
 .toast-success{border-color:var(--green)}
 .toast-error{border-color:var(--red)}
@@ -110,15 +109,8 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 
 <div id="toast" class="toast hidden"></div>
 
-<!-- Recorder bar -->
-<div id="recorder-bar" class="recorder-bar">
-  <span class="rec-dot" id="rec-dot"></span>
-  <span class="rec-time" id="rec-time">00:00</span>
-  <span class="rec-label" id="rec-label"></span>
-  <button class="btn rec-btn rec-pause-btn" id="rec-pause-btn" onclick="pauseRecording()">⏸</button>
-  <button class="btn rec-btn rec-stop-btn" id="rec-stop-btn" onclick="stopRecording()">⏹</button>
-  <button class="btn rec-btn rec-resume-btn hidden" id="rec-resume-btn" onclick="resumeRecording()">▶</button>
-</div>
+<!-- Recorder inline containers (hidden by default, shown when recording) -->
+<!-- For steps, recorder divs are created dynamically in renderStep() -->
 
 <!-- Language bar -->
 <div class="lang-bar" id="lang-bar">
@@ -167,6 +159,13 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('objective')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="objective-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('objective')">🔊</button></span>
+      <span class="recorder-inline" id="rec-objective">
+        <span class="rec-dot"></span>
+        <span class="rec-time">00:00</span>
+        <button class="rec-btn-inline rec-pause-btn" onclick="pauseRecording()">⏸</button>
+        <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
+        <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
+      </span>
       <button class="btn btn-ghost btn-sm" onclick="homogenizeField('objective')" style="color:var(--accent)">🤖</button>
     </div>
   </div>
@@ -186,6 +185,13 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('errors')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="errors-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('errors')">🔊</button></span>
+      <span class="recorder-inline" id="rec-errors">
+        <span class="rec-dot"></span>
+        <span class="rec-time">00:00</span>
+        <button class="rec-btn-inline rec-pause-btn" onclick="pauseRecording()">⏸</button>
+        <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
+        <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
+      </span>
       <button class="btn btn-ghost btn-sm" onclick="homogenizeField('errors')" style="color:var(--accent)">🤖</button>
     </div>
   </div>
@@ -208,6 +214,13 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <div class="gap-6 mt-8">
       <button class="btn btn-ghost btn-sm" onclick="recordField('emails')"><span data-i="recordAudioBtn">🎤 Record audio</span></button>
       <span id="emails-audio" class="hidden"><button class="btn btn-ghost btn-sm" onclick="playFieldAudio('emails')">🔊</button></span>
+      <span class="recorder-inline" id="rec-emails">
+        <span class="rec-dot"></span>
+        <span class="rec-time">00:00</span>
+        <button class="rec-btn-inline rec-pause-btn" onclick="pauseRecording()">⏸</button>
+        <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
+        <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
+      </span>
       <button class="btn btn-ghost btn-sm" onclick="homogenizeField('emails')" style="color:var(--accent)">🤖</button>
     </div>
   </div>
@@ -881,6 +894,13 @@ function renderStep(s, i) {
     <div class="step-header">
       <span class="badge badge-count">${i+1}</span>
       <button class="btn btn-ghost btn-sm" onclick="recordStep(${i})" title="${t('recordAudioBtn').replace('🎤 ','')}">🎤</button>
+      <span class="recorder-inline" id="rec-step-${i}">
+        <span class="rec-dot"></span>
+        <span class="rec-time">00:00</span>
+        <button class="rec-btn-inline rec-pause-btn" onclick="pauseRecording()">⏸</button>
+        <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
+        <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
+      </span>
       ${audioBtns}
       <button class="btn btn-ghost btn-sm" onclick="homogenizeStep(${i})" style="color:var(--accent)">🤖</button>
       <button class="btn btn-ghost btn-sm" onclick="takePhoto(${i})" title="📸">📸</button>
@@ -950,42 +970,82 @@ let _recState = { active: false, paused: false, stream: null, mr: null, chunks: 
   mediaType: 'audio', label: '' };
 
 function showRecorderBar() {
-  document.getElementById('recorder-bar').classList.add('show');
-  document.getElementById('rec-time').textContent = '00:00';
-  document.getElementById('rec-pause-btn').classList.remove('hidden');
-  document.getElementById('rec-resume-btn').classList.add('hidden');
-  document.getElementById('rec-stop-btn').classList.remove('hidden');
+  // Show the inline recorder for the active field
+  const id = _recState.recorderId;
+  if (!id) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('show');
+  el.querySelector('.rec-time').textContent = '00:00';
+  const pause = el.querySelector('.rec-pause-btn');
+  const resume = el.querySelector('.rec-resume-btn');
+  const stop = el.querySelector('.rec-stop-btn');
+  if (pause) pause.classList.remove('hidden');
+  if (resume) resume.classList.add('hidden');
+  if (stop) stop.classList.remove('hidden');
+  // Also hide the 🎤 button in the same row
+  const row = el.closest('.gap-6, .step-header');
+  if (row) {
+    const micBtn = row.querySelector('[onclick^="recordField"],[onclick^="recordStep"]');
+    if (micBtn) micBtn.style.display = 'none';
+  }
 }
 
 function hideRecorderBar() {
-  document.getElementById('recorder-bar').classList.remove('show');
   if (_recState.timerInterval) { clearInterval(_recState.timerInterval); _recState.timerInterval = null; }
+  // Hide all inline recorders
+  document.querySelectorAll('.recorder-inline.show').forEach(el => {
+    el.classList.remove('show');
+    // Show the 🎤 button again
+    const row = el.closest('.gap-6, .step-header');
+    if (row) {
+      const micBtn = row.querySelector('[onclick^="recordField"],[onclick^="recordStep"]');
+      if (micBtn) micBtn.style.display = '';
+    }
+  });
+  _recState.recorderId = '';
 }
 
 function updateRecTime() {
-  if (!_recState.startTime) return;
+  if (!_recState.startTime || !_recState.recorderId) return;
   const elapsed = Math.floor((Date.now() - _recState.startTime) / 1000);
   const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const s = String(elapsed % 60).padStart(2, '0');
-  document.getElementById('rec-time').textContent = m + ':' + s;
+  const el = document.getElementById(_recState.recorderId);
+  if (el) {
+    const timeEl = el.querySelector('.rec-time');
+    if (timeEl) timeEl.textContent = m + ':' + s;
+  }
 }
 
 function pauseRecording() {
   if (!_recState.active || _recState.paused) return;
   _recState.paused = true;
   if (_recState.mr && _recState.mr.state === 'recording') _recState.mr.pause();
-  document.getElementById('rec-pause-btn').classList.add('hidden');
-  document.getElementById('rec-resume-btn').classList.remove('hidden');
-  document.getElementById('rec-dot').style.opacity = '0.3';
+  const el = _recState.recorderId ? document.getElementById(_recState.recorderId) : null;
+  if (el) {
+    const pause = el.querySelector('.rec-pause-btn');
+    const resume = el.querySelector('.rec-resume-btn');
+    const dot = el.querySelector('.rec-dot');
+    if (pause) pause.classList.add('hidden');
+    if (resume) resume.classList.remove('hidden');
+    if (dot) dot.style.opacity = '0.3';
+  }
 }
 
 function resumeRecording() {
   if (!_recState.active || !_recState.paused) return;
   _recState.paused = false;
   if (_recState.mr && _recState.mr.state === 'paused') _recState.mr.resume();
-  document.getElementById('rec-pause-btn').classList.remove('hidden');
-  document.getElementById('rec-resume-btn').classList.add('hidden');
-  document.getElementById('rec-dot').style.opacity = '1';
+  const el = _recState.recorderId ? document.getElementById(_recState.recorderId) : null;
+  if (el) {
+    const pause = el.querySelector('.rec-pause-btn');
+    const resume = el.querySelector('.rec-resume-btn');
+    const dot = el.querySelector('.rec-dot');
+    if (pause) pause.classList.remove('hidden');
+    if (resume) resume.classList.add('hidden');
+    if (dot) dot.style.opacity = '1';
+  }
 }
 
 function stopRecording() {
@@ -1033,7 +1093,6 @@ function startRecording(callback) {
   _recState.mediaType = 'audio';
   
   showRecorderBar();
-  document.getElementById('rec-label').textContent = t('toastRec');
   _recState.startTime = Date.now();
   _recState.timerInterval = setInterval(updateRecTime, 200);
   
@@ -1089,6 +1148,7 @@ function recordField(field) {
   const a = getActivity(currentId);
   if (!a) return;
   
+  _recState.recorderId = 'rec-' + field;
   const hasSpeechRec = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   
   startRecording((blob, dataUrl, transcript) => {
@@ -1135,6 +1195,7 @@ function recordStep(idx) {
   const a = getActivity(currentId);
   if (!a || !a.steps || !a.steps[idx]) return;
   
+  _recState.recorderId = 'rec-step-' + idx;
   const hasSpeechRec = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   
   startRecording((blob, dataUrl, transcript) => {
@@ -1188,8 +1249,8 @@ function recordActivityVideo() {
     toastLang('toastVideoSaved', 'success');
   };
   
+  _recState.recorderId = 'obj-' + currentId;
   showRecorderBar();
-  document.getElementById('rec-label').textContent = t('toastRecVideo');
   _recState.startTime = Date.now();
   _recState.timerInterval = setInterval(updateRecTime, 200);
   
