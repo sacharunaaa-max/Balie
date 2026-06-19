@@ -1009,7 +1009,6 @@ function recordField(field) {
   if (!a) return;
   
   _recState.recorderId = 'rec-' + field;
-  const hasSpeechRec = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   
   startRecording((blob, dataUrl, transcript) => {
     if (!audioBlobs[a.id]) audioBlobs[a.id] = {};
@@ -1048,7 +1047,6 @@ function recordStep(idx) {
   if (!a || !a.steps || !a.steps[idx]) return;
   
   _recState.recorderId = 'rec-step-' + idx;
-  const hasSpeechRec = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   
   startRecording((blob, dataUrl, transcript) => {
     if (!a.steps[idx].audios) a.steps[idx].audios = [];
