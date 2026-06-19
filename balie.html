@@ -71,38 +71,6 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .video-preview video{width:100%;display:block;max-height:200px}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
 .empty-state p{margin-bottom:16px;font-size:0.95rem}
-/* Synced data view */
-.sync-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;background:var(--card)}
-.sync-card h3{font-size:1rem;margin-bottom:6px;color:var(--accent)}
-.sync-card .meta{font-size:0.75rem;color:var(--text2);margin-bottom:8px}
-.sync-card .obj{font-size:0.85rem;color:var(--text);margin-bottom:10px;padding:8px;background:var(--bg);border-radius:4px;border-left:3px solid var(--yellow)}
-.sync-card .step-item{padding:6px 10px;margin:4px 0;background:var(--bg);border-radius:4px;font-size:0.83rem;border-left:2px solid var(--accent)}
-.sync-card .error-box{font-size:0.83rem;padding:8px;margin-top:8px;background:rgba(248,81,73,0.1);border-left:3px solid var(--red);border-radius:4px;color:var(--red)}
-.sync-card .email-box{font-size:0.83rem;padding:8px;margin-top:6px;background:rgba(88,166,255,0.1);border-left:3px solid var(--accent);border-radius:4px}
-.sync-card .route-chip-sync{display:inline-block;background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:12px;font-size:0.75rem;font-family:monospace;color:var(--green);margin:2px}
-.sync-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px}
-.sync-source{font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:600}
-.sync-source.cloud{background:rgba(88,166,255,0.15);color:var(--accent)}
-.sync-source.imported{background:rgba(210,153,34,0.15);color:var(--yellow)}
-.sync-source.synced{background:rgba(63,185,80,0.15);color:var(--green)}
-/* Photo editor */
-#photo-editor .modal{padding:12px;max-width:600px;display:flex;flex-direction:column}
-#photo-editor canvas{width:100%;border-radius:6px;background:#000;touch-action:none;cursor:crosshair;display:block}
-.editor-tb{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border)}
-.editor-tb .btn{font-size:1.1rem;padding:6px 12px}
-.editor-tb .btn.active{border-color:var(--accent);background:rgba(88,166,255,0.15);color:var(--accent)}
-.editor-tb .btn-green{background:var(--green);color:#fff}
-.editor-tb .btn-red{background:var(--red);color:#fff}
-.editor-color{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0}
-.editor-color.active{border-color:var(--accent);transform:scale(1.2)}
-.editor-sep{width:1px;height:24px;background:var(--border);display:inline-block;margin:0 4px}
-.editor-size{display:flex;align-items:center;gap:4px}
-.editor-size input[type=range]{width:60px;accent-color:var(--accent)}
-.editor-size span{font-size:0.7rem;color:var(--text2)}
-.synced-stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.synced-stats .stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;text-align:center;flex:1;min-width:100px}
-.synced-stats .stat-num{font-size:1.8rem;font-weight:700;color:var(--accent)}
-.synced-stats .stat-label{font-size:0.75rem;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -126,11 +94,9 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
   <div class="flex-between mb-8">
     <span id="count-label" style="color:var(--text2);font-size:0.85rem">0 actividades</span>
     <div class="gap-6">
-      <span class="server-status" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--text2);cursor:help" title="Comprobando servidor..."></span>
       <button class="btn btn-ghost btn-sm" onclick="importData()"><span data-i="importBtn">📥 Import</span></button>
       <button class="btn btn-green btn-sm" onclick="exportAll()"><span data-i="exportAllBtn">📤 Export all</span></button>
-      <button class="btn btn-yellow btn-sm" onclick="syncAll()"><span data-i="syncAllBtn">☁️ Sync all</span></button>
-      <button class="btn btn-primary btn-sm" onclick="showSynced()" style="background:var(--text2)"><span data-i="syncViewBtn">📡 Datos</span></button>
+      
     </div>
   </div>
   <div id="activity-list"></div>
@@ -143,11 +109,9 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
     <button class="btn btn-ghost btn-sm" onclick="backToList()"><span data-i="backBtn">← Back</span></button>
     <div class="gap-6">
       <button class="btn btn-ghost btn-sm" onclick="exportOne()"><span data-i="exportBtn">📄 Export</span></button>
-      <button class="btn btn-green btn-sm" onclick="syncCurrent()"><span data-i="syncBtn">☁️ Subir</span></button>
       <button class="btn btn-sm btn-primary" onclick="saveCurrent()"><span data-i="saveBtn">💾 Save</span></button>
       <span id="auto-save-indicator" class="hidden" style="font-size:0.7rem;color:var(--green);white-space:nowrap">💾 Auto</span>
-      <span class="server-status" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--text2);cursor:help" title="Comprobando servidor..."></span>
-    </div>
+      </div>
   </div>
 
   <input id="edit-title" data-ph="titlePlaceholder" placeholder="Activity name (e.g. Change Position)" style="font-size:1.1rem;font-weight:600;margin-bottom:4px">
@@ -166,8 +130,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
         <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
         <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
       </span>
-      <button class="btn btn-ghost btn-sm" onclick="homogenizeField('objective')" style="color:var(--accent)">🤖</button>
-    </div>
+      </div>
   </div>
 
   <!-- STEPS -->
@@ -192,8 +155,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
         <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
         <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
       </span>
-      <button class="btn btn-ghost btn-sm" onclick="homogenizeField('errors')" style="color:var(--accent)">🤖</button>
-    </div>
+      </div>
   </div>
 
   <!-- ROUTES -->
@@ -221,8 +183,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
         <button class="rec-btn-inline rec-stop-btn" onclick="stopRecording()">⏹</button>
         <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
       </span>
-      <button class="btn btn-ghost btn-sm" onclick="homogenizeField('emails')" style="color:var(--accent)">🤖</button>
-    </div>
+      </div>
   </div>
 
   <!-- VIDEO -->
@@ -239,16 +200,6 @@ input:focus,textarea:focus{outline:none;border-color:var(--accent)}
   </div>
 
   <button class="btn btn-primary" onclick="saveCurrent()" style="width:100%;justify-content:center;margin-top:8px"><span data-i="saveActBtn">💾 SAVE ACTIVITY</span></button>
-</div>
-
-<!-- ===== SYNCED DATA VIEW ===== -->
-<div id="view-synced" class="hidden">
-  <div class="flex-between mb-8">
-    <button class="btn btn-ghost btn-sm" onclick="backToSynced()"><span data-i="backSyncBtn">← Volver</span></button>
-    <button class="btn btn-ghost btn-sm" onclick="refreshSynced()" style="font-size:0.75rem"><span data-i="refreshBtn">🔄 Refrescar</span></button>
-  </div>
-  <div id="synced-loading" style="text-align:center;padding:40px;color:var(--text2)"><span data-i="loadingSync">📡 Cargando datos sincronizados...</span></div>
-  <div id="synced-content"></div>
 </div>
 
 <!-- ===== PHOTO EDITOR ===== -->
@@ -306,27 +257,9 @@ const L = {
     menuSubtitle: 'Capturador de Procedimientos',
     importBtn: '📥 Importar',
     exportAllBtn: '📤 Exportar todo',
-    syncAllBtn: '☁️ Subir todas',
-    syncViewBtn: '📡 Datos',
-    backSyncBtn: '← Volver',
-    refreshBtn: '🔄 Refrescar',
-    loadingSync: '📡 Cargando datos sincronizados...',
-    noSyncData: 'Aún no hay datos sincronizados.',
-    noSyncHint: 'Usá ☁️ Subir para enviar actividades desde esta app.',
-    syncImported: '📥 Importado',
-    syncCloud: '☁️ Sincronizado',
-    syncFromApp: '📱 Desde la app',
-    syncSteps: '{n} paso | {n} pasos',
-    syncActivities: '{n} proceso | {n} procesos',
-    syncErrors: '⚠️ Errores comunes',
-    syncEmails: '📧 Emails',
-    syncRoutes: '📁 Rutas',
-    syncNoObj: 'Sin objetivo',
-    syncNoSteps: 'Sin pasos',
     newActBtn: '➕ NUEVA ACTIVIDAD',
     backBtn: '← Volver',
     exportBtn: '📄 Exportar',
-    syncBtn: '☁️ Subir',
     saveBtn: '💾 Guardar',
     titlePlaceholder: 'Nombre de la actividad (ej: Change Position)',
     objTitle: '🎯 Objetivo',
@@ -370,11 +303,7 @@ const L = {
     toastFormatError: 'Formato no reconocido',
     toastRec: '🔴 Grabando audio...',
     toastRecVideo: '🎥 Grabando video...',
-    toastSynced: '☁️ Subido: {name}',
-    toastHomSent: '🤖 Enviado para corregir',
     toastStepAdded: '➕ Paso añadido',
-    toastHomError: '🤖 Error al enviar. ¿La PC está encendida?',
-    toastSyncError: '☁️ Error al subir. ¿La PC está encendida?',
     stopBtn: '⏹ DETENER GRABACIÓN',
     stepPlaceholder: 'Escribí el paso... o usá 🎤 para grabarlo con audio',
     confirmDelete: '¿Eliminar esta actividad?',
@@ -386,27 +315,9 @@ const L = {
     menuSubtitle: 'Procedure Recorder',
     importBtn: '📥 Import',
     exportAllBtn: '📤 Export all',
-    syncAllBtn: '☁️ Sync all',
-    syncViewBtn: '📡 Data',
-    backSyncBtn: '← Back',
-    refreshBtn: '🔄 Refresh',
-    loadingSync: '📡 Loading synced data...',
-    noSyncData: 'No synced data yet.',
-    noSyncHint: 'Use ☁️ Upload to send activities from this app.',
-    syncImported: '📥 Imported',
-    syncCloud: '☁️ Synced',
-    syncFromApp: '📱 From app',
-    syncSteps: '{n} step | {n} steps',
-    syncActivities: '{n} procedure | {n} procedures',
-    syncErrors: '⚠️ Common errors',
-    syncEmails: '📧 Emails',
-    syncRoutes: '📁 Routes',
-    syncNoObj: 'No objective',
-    syncNoSteps: 'No steps',
     newActBtn: '➕ NEW ACTIVITY',
     backBtn: '← Back',
     exportBtn: '📄 Export',
-    syncBtn: '☁️ Upload',
     saveBtn: '💾 Save',
     titlePlaceholder: 'Activity name (e.g. Change Position)',
     objTitle: '🎯 Objective',
@@ -450,11 +361,7 @@ const L = {
     toastFormatError: 'Unrecognized format',
     toastRec: '🔴 Recording audio...',
     toastRecVideo: '🎥 Recording video...',
-    toastSynced: '☁️ Synced: {name}',
-    toastHomSent: '🤖 Sent for correction',
     toastStepAdded: '➕ Step added',
-    toastHomError: '🤖 Send error. Is the PC on?',
-    toastSyncError: '☁️ Sync error. Is the PC on?',
     stopBtn: '⏹ STOP RECORDING',
     stepPlaceholder: 'Write the step... or use 🎤 to record it with audio',
     confirmDelete: 'Delete this activity?',
@@ -466,27 +373,9 @@ const L = {
     menuSubtitle: 'Procedure-opnemer',
     importBtn: '📥 Importeren',
     exportAllBtn: '📤 Alles exporteren',
-    syncAllBtn: '☁️ Alles uploaden',
-    syncViewBtn: '📡 Gegevens',
-    backSyncBtn: '← Terug',
-    refreshBtn: '🔄 Verversen',
-    loadingSync: '📡 Gesynchroniseerde gegevens laden...',
-    noSyncData: 'Nog geen gesynchroniseerde gegevens.',
-    noSyncHint: 'Gebruik ☁️ Uploaden om activiteiten vanuit deze app te versturen.',
-    syncImported: '📥 Geïmporteerd',
-    syncCloud: '☁️ Gesynchroniseerd',
-    syncFromApp: '📱 Vanuit app',
-    syncSteps: '{n} stap | {n} stappen',
-    syncActivities: '{n} procedure | {n} procedures',
-    syncErrors: '⚠️ Veelgemaakte fouten',
-    syncEmails: '📧 E-mails',
-    syncRoutes: '📁 Paden',
-    syncNoObj: 'Geen doelstelling',
-    syncNoSteps: 'Geen stappen',
     newActBtn: '➕ NIEUWE ACTIVITEIT',
     backBtn: '← Terug',
     exportBtn: '📄 Exporteren',
-    syncBtn: '☁️ Uploaden',
     saveBtn: '💾 Opslaan',
     titlePlaceholder: 'Activiteitnaam (bijv. Change Position)',
     objTitle: '🎯 Doelstelling',
@@ -530,11 +419,7 @@ const L = {
     toastFormatError: 'Formaat niet herkend',
     toastRec: '🔴 Audio opnemen...',
     toastRecVideo: '🎥 Video opnemen...',
-    toastSynced: '☁️ Geüpload: {name}',
-    toastHomSent: '🤖 Verzonden voor correctie',
     toastStepAdded: '➕ Stap toegevoegd',
-    toastHomError: '🤖 Verzendfout. Staat de pc aan?',
-    toastSyncError: '☁️ Uploadfout. Staat de pc aan?',
     stopBtn: '⏹ STOP OPNEMEN',
     stepPlaceholder: 'Schrijf de stap... of gebruik 🎤 om audio op te nemen',
     confirmDelete: 'Deze activiteit verwijderen?',
@@ -546,27 +431,9 @@ const L = {
     menuSubtitle: 'Capturador de Procedimentos',
     importBtn: '📥 Importar',
     exportAllBtn: '📤 Exportar tudo',
-    syncAllBtn: '☁️ Sincronizar',
-    syncViewBtn: '📡 Dados',
-    backSyncBtn: '← Voltar',
-    refreshBtn: '🔄 Atualizar',
-    loadingSync: '📡 Carregando dados sincronizados...',
-    noSyncData: 'Ainda sem dados sincronizados.',
-    noSyncHint: 'Use ☁️ Enviar para mandar atividades deste app.',
-    syncImported: '📥 Importado',
-    syncCloud: '☁️ Sincronizado',
-    syncFromApp: '📱 Do app',
-    syncSteps: '{n} passo | {n} passos',
-    syncActivities: '{n} processo | {n} processos',
-    syncErrors: '⚠️ Erros comuns',
-    syncEmails: '📧 E-mails',
-    syncRoutes: '📁 Rotas',
-    syncNoObj: 'Sem objetivo',
-    syncNoSteps: 'Sem passos',
     newActBtn: '➕ NOVA ATIVIDADE',
     backBtn: '← Voltar',
     exportBtn: '📄 Exportar',
-    syncBtn: '☁️ Enviar',
     saveBtn: '💾 Salvar',
     titlePlaceholder: 'Nome da atividade (ex: Trocar Guarda)',
     objTitle: '🎯 Objetivo',
@@ -610,11 +477,7 @@ const L = {
     toastFormatError: 'Formato não reconhecido',
     toastRec: '🔴 Gravando áudio...',
     toastRecVideo: '🎥 Gravando vídeo...',
-    toastSynced: '☁️ Enviado: {name}',
-    toastHomSent: '🤖 Enviado para corrigir',
     toastStepAdded: '➕ Passo adicionado',
-    toastHomError: '🤖 Erro ao enviar. O PC está ligado?',
-    toastSyncError: '☁️ Erro ao enviar. O PC está ligado?',
     stopBtn: '⏹ PARAR GRAVAÇÃO',
     stepPlaceholder: 'Escreva o passo... ou use 🎤 para gravar com áudio',
     confirmDelete: 'Excluir esta atividade?',
@@ -679,9 +542,7 @@ function init() {
   if (saved && L[saved]) setLang(saved);
   else setLang('es');
   renderList();
-  // Check server status periodically
-  checkServerStatus();
-  setInterval(checkServerStatus, 60000);
+
 }
 
 // ─── PERSISTENCE ───
@@ -902,7 +763,6 @@ function renderStep(s, i) {
         <button class="rec-btn-inline rec-resume-btn hidden" onclick="resumeRecording()">▶</button>
       </span>
       ${audioBtns}
-      <button class="btn btn-ghost btn-sm" onclick="homogenizeStep(${i})" style="color:var(--accent)">🤖</button>
       <button class="btn btn-ghost btn-sm" onclick="takePhoto(${i})" title="📸">📸</button>
       <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},-1)" title="Mover arriba" style="font-size:1rem">⬆</button>
       <button class="btn btn-ghost btn-sm" onclick="moveStep(${i},1)" title="Mover abajo" style="font-size:1rem">⬇</button>
@@ -1163,14 +1023,6 @@ function recordField(field) {
       return;
     }
     
-    // Si no hay SpeechRecognition nativo, intentar transcripción vía servidor
-    if (!hasSpeechRec) {
-      transcribeViaServer(dataUrl, currentLang, (serverText) => {
-        if (serverText) {
-          insertTranscript(field, serverText);
-        }
-      });
-    }
   });
   
   function insertTranscript(field, text) {
@@ -1204,16 +1056,6 @@ function recordStep(idx) {
     
     if (transcript) {
       a.steps[idx].text += (a.steps[idx].text ? ' ' : '') + transcript;
-    } else if (!hasSpeechRec) {
-      // Sin SpeechRecognition nativo, intentar servidor
-      transcribeViaServer(dataUrl, currentLang, (serverText) => {
-        if (serverText) {
-          a.steps[idx].text += (a.steps[idx].text ? ' ' : '') + serverText;
-          a.updatedAt = new Date().toISOString();
-          saveState();
-          renderSteps(a);
-        }
-      });
     }
     
     a.updatedAt = new Date().toISOString();
@@ -1689,108 +1531,6 @@ function closeMediaOverlay() {
 }
 
 // ─── SAVE ───
-// ─── HOMOGENIZE ───
-function homogenizeField(field) {
-  const a = getActivity(currentId);
-  if (!a) return;
-  const el = document.getElementById('edit-' + field);
-  if (!el) return;
-  const text = el.value.trim();
-  if (!text) { toastLang('toastError', 'error', { msg: 'No hay texto' }); return; }
-  sendHomogenize(a.title || 'Proceso', field, text);
-}
-
-function homogenizeStep(idx) {
-  const a = getActivity(currentId);
-  if (!a || !a.steps || !a.steps[idx]) return;
-  const text = a.steps[idx].text.trim();
-  if (!text) { toastLang('toastError', 'error', { msg: 'No hay texto' }); return; }
-  sendHomogenize(a.title || 'Proceso', 'Paso ' + (idx + 1), text);
-}
-
-let _homReq = 0;
-function sendHomogenize(title, field, text) {
-  const reqId = ++_homReq;
-  // Tunnel HTTPS primero (funciona desde cualquier red), LAN después
-  const servers = [
-    'https://habitat-distributors-liability-trace.trycloudflare.com',
-    'http://192.168.178.38:18999'
-  ];
-  
-  function trySend(idx) {
-    if (idx >= servers.length) {
-      toastLang('toastHomError', 'error');
-      return;
-    }
-    toastLang('toastRec', 'info');
-    fetch(servers[idx] + '/homogenize', {
-      method: 'POST', mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, field, text, reqId, ts: new Date().toISOString() })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === 'ok') {
-        toastLang('toastHomSent', 'success');
-        // Empezar a buscar la corrección
-        setTimeout(() => pollHomogenizeResult(reqId, field), 5000);
-      } else { trySend(idx + 1); }
-    })
-    .catch(() => trySend(idx + 1));
-  }
-  trySend(0);
-}
-
-// Buscar resultado de homogenización
-function pollHomogenizeResult(reqId, field) {
-  const servers = [
-    'https://habitat-distributors-liability-trace.trycloudflare.com',
-    'http://192.168.178.38:18999'
-  ];
-  
-  // Determinar el campo real (si es 'Paso N', usar la actividad actual)
-  const a = getActivity(currentId);
-  
-  function tryPoll(idx) {
-    if (idx >= servers.length) {
-      // Reintentar después (no hay resultado aún)
-      setTimeout(() => pollHomogenizeResult(reqId, field), 8000);
-      return;
-    }
-    fetch(servers[idx] + '/get-homogenized?reqId=' + reqId, { mode: 'cors' })
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === 'ok' && data.corrected) {
-        // Insertar texto corregido
-        if (field.startsWith('Paso ')) {
-          const idx = parseInt(field.split(' ')[1]) - 1;
-          if (a && a.steps && a.steps[idx]) {
-            a.steps[idx].text = data.corrected;
-            renderSteps(a);
-            toast('✅ Texto corregido', 'success');
-          }
-        } else {
-          const el = document.getElementById('edit-' + data.field);
-          if (el) {
-            el.value = data.corrected;
-            el.dispatchEvent(new Event('input'));
-            toast('✅ Texto corregido', 'success');
-          }
-        }
-        a.updatedAt = new Date().toISOString();
-        saveState();
-      } else if (data.status === 'pending') {
-        // Aún procesando, reintentar
-        setTimeout(() => pollHomogenizeResult(reqId, field), 5000);
-      } else {
-        tryPoll(idx + 1);
-      }
-    })
-    .catch(() => tryPoll(idx + 1));
-  }
-  tryPoll(0);
-}
-
 function saveCurrent() {
   const a = getActivity(currentId);
   if (!a) return;
@@ -1853,30 +1593,6 @@ function downloadFile(name, content, mime) {
 // ─── SYNC (subir a PC / nube) ───
 let _autoSaveTimer = null;
 
-function checkServerStatus() {
-  const dots = document.querySelectorAll('.server-status');
-  if (!dots.length) return;
-  // Try multiple servers
-  const servers = [
-    'http://192.168.178.38:18999',
-    'https://habitat-distributors-liability-trace.trycloudflare.com'
-  ];
-  function tryPing(idx) {
-    if (idx >= servers.length) {
-      dots.forEach(d => { d.style.background = 'var(--red)'; d.title = 'Servidor desconectado'; });
-      return;
-    }
-    fetch(servers[idx] + '/health', { mode: 'cors' })
-      .then(r => {
-        if (r.ok) {
-          dots.forEach(d => { d.style.background = 'var(--green)'; d.title = 'Servidor conectado'; });
-        } else { tryPing(idx + 1); }
-      })
-      .catch(() => tryPing(idx + 1));
-  }
-  tryPing(0);
-}
-
 function autoSave() {
   const a = getActivity(currentId);
   if (!a) return;
@@ -1892,243 +1608,6 @@ function autoSave() {
     clearTimeout(ind._hide);
     ind._hide = setTimeout(() => ind.classList.add('hidden'), 2000);
   }
-}
-
-function syncCurrent() {
-  const a = getActivity(currentId);
-  if (!a) return;
-  const data = buildExport(a);
-  syncToServer(data.data.title || 'actividad', JSON.stringify(data.data, null, 2));
-}
-
-function syncAll() {
-  if (activities.length === 0) { toastLang('toastNoActivities', 'error'); return; }
-  const all = activities.map(a => buildExport(a).data);
-  const payload = JSON.stringify({ exportedAt: new Date().toISOString(), count: all.length, activities: all }, null, 2);
-  syncToServer('todas-las-actividades', payload);
-}
-
-function syncToServer(name, jsonData) {
-  // Intentar enviar al servidor local (PC del usuario)
-  const servers = [
-    'http://192.168.178.38:18999',  // IP local de la PC (misma WiFi)
-    'http://localhost:18999',        // mismo dispositivo
-    'https://habitat-distributors-liability-trace.trycloudflare.com'  // túnel público (cualquier red)
-  ];
-  
-  function tryServer(idx) {
-    if (idx >= servers.length) {
-      toastLang('toastSyncError', 'error');
-      return;
-    }
-    fetch(servers[idx], {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name, data: jsonData })
-    })
-    .then(r => {
-      if (r.ok) toastLang('toastSynced', 'success', { name: name.slice(0,30) });
-      else tryServer(idx + 1);
-    })
-    .catch(() => tryServer(idx + 1));
-  }
-  
-  tryServer(0);
-}
-
-// ─── TRANSCRIBE ───
-function transcribeViaServer(dataUrl, lang, callback) {
-  // dataUrl: "data:audio/webm;base64,..." → extraer solo el base64
-  const base64 = dataUrl.split(',')[1];
-  if (!base64 || base64.length < 100) { if (callback) callback(null); return; }
-  
-  toastLang('toastRec', 'info');
-  
-  // Tunnel HTTPS primero (funciona desde cualquier red), después LAN
-  const servers = [
-    'https://habitat-distributors-liability-trace.trycloudflare.com',
-    'http://192.168.178.38:18999',
-    'http://localhost:18999'
-  ];
-  
-  function tryTranscribe(idx) {
-    if (idx >= servers.length) {
-      toast((t('toastSyncError') || 'Error al transcribir') + '. ' + (t('toastSyncError') ? '' : '¿PC encendida?'), 'error');
-      if (callback) callback(null);
-      return;
-    }
-    
-    fetch(servers[idx] + '/transcribe', {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ audio: base64, lang: lang || 'es' })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === 'ok' && data.text) {
-        toastLang('toastTranscribed', 'success', { text: data.text.slice(0,60) + (data.text.length > 60 ? '...' : '') });
-        if (callback) callback(data.text);
-      } else {
-        tryTranscribe(idx + 1);
-      }
-    })
-    .catch(() => tryTranscribe(idx + 1));
-  }
-  
-  tryTranscribe(0);
-}
-
-// ─── SYNCED DATA VIEWER ───
-const GITHUB_RAW = 'https://raw.githubusercontent.com/sacharunaaa-max/Balie/main';
-const GITHUB_API_CONTENTS = 'https://api.github.com/repos/sacharunaaa-max/Balie/contents/balie-data';
-
-function showSynced() {
-  document.getElementById('view-list').classList.add('hidden');
-  document.getElementById('view-synced').classList.remove('hidden');
-  refreshSynced();
-}
-
-function backToSynced() {
-  document.getElementById('view-synced').classList.add('hidden');
-  document.getElementById('view-list').classList.remove('hidden');
-}
-
-function refreshSynced() {
-  const el = document.getElementById('synced-content');
-  const loading = document.getElementById('synced-loading');
-  loading.classList.remove('hidden');
-  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">⏳ ' + t('loadingSync') + '</div>';
-  
-  Promise.all([
-    fetch(GITHUB_RAW + '/balie-import-procesos-pulidos.json').then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch(GITHUB_RAW + '/balie-procesos.md').then(r => r.ok ? r.text() : null).catch(() => null)
-  ]).then(([imported, markdown]) => {
-    loading.classList.add('hidden');
-    
-    if (!imported && !markdown) {
-      el.innerHTML = '<div class="empty-state"><p>📭 ' + t('noSyncData') + '</p><p style="font-size:0.8rem">' + t('noSyncHint') + '</p></div>';
-      return;
-    }
-    
-    let html = '';
-    let activities = [];
-    
-    // Collect from imported JSON
-    if (imported && imported.activities) {
-      imported.activities.forEach(a => {
-        activities.push({ activity: a, source: 'imported' });
-      });
-    }
-    
-    // Also try to fetch latest synced data
-    fetch(GITHUB_API_CONTENTS)
-      .then(r => r.ok ? r.json() : [])
-      .then(files => {
-        // Sort by name desc (most recent first)
-        files.sort((a, b) => b.name.localeCompare(a.name));
-        // Get newest .json (skip import file)
-        const jsonFiles = files.filter(f => f.name.endsWith('.json') && f.name !== 'balie-import-procesos-pulidos.json' && f.size > 500);
-        if (jsonFiles.length > 0) {
-          fetch(jsonFiles[0].download_url)
-            .then(r => r.ok ? r.json() : null)
-            .then(synced => {
-              if (synced && synced.activities) {
-                synced.activities.forEach(a => {
-                  if (!activities.some(ex => ex.activity.title === a.title)) {
-                    activities.push({ activity: a, source: 'synced' });
-                  }
-                });
-              }
-              renderSyncedData(el, activities);
-            })
-            .catch(() => renderSyncedData(el, activities));
-        } else {
-          renderSyncedData(el, activities);
-        }
-      })
-      .catch(() => renderSyncedData(el, activities));
-  });
-}
-
-function renderSyncedData(el, activities) {
-  if (activities.length === 0) {
-    el.innerHTML = '<div class="empty-state"><p>📭 ' + t('noSyncData') + '</p><p style="font-size:0.8rem">' + t('noSyncHint') + '</p></div>';
-    return;
-  }
-  
-  const totalSteps = activities.reduce((sum, a) => sum + (a.activity.steps ? a.activity.steps.length : 0), 0);
-  const hasErrors = activities.filter(a => a.activity.errors).length;
-  
-  let html = '<div class="synced-stats">' +
-    '<div class="stat"><div class="stat-num">' + activities.length + '</div><div class="stat-label">' + plural(activities.length, t('syncActivities')).replace(/{n}/g, activities.length) + '</div></div>' +
-    '<div class="stat"><div class="stat-num">' + totalSteps + '</div><div class="stat-label">' + plural(totalSteps, t('syncSteps')).replace('{n}', '').trim() + '</div></div>' +
-    (hasErrors ? '<div class="stat"><div class="stat-num" style="color:var(--red)">' + hasErrors + '</div><div class="stat-label">' + t('syncErrors').split(' ')[0] + '</div></div>' : '') +
-    '</div>';
-  
-  activities.forEach((item, idx) => {
-    const a = item.activity;
-    const title = a.title || (t('menuTitle') + ' #' + (idx + 1));
-    const objective = a.objective || a.objective_en || a.objective_nl || a.objective_pt || '';
-    const steps = a.steps || [];
-    const errors = a.errors || a.errors_en || a.errors_nl || a.errors_pt || '';
-    const emails = a.emails || a.emails_en || a.emails_nl || a.emails_pt || '';
-    const routes = a.routes || [];
-    
-    let sourceLabel = t('syncImported');
-    let sourceClass = 'imported';
-    if (item.source === 'synced') {
-      sourceLabel = t('syncFromApp');
-      sourceClass = 'synced';
-    }
-    
-    html += '<div class="sync-card">';
-    html += '<div class="sync-header"><h3>' + escapeHtml(title) + '</h3><span class="sync-source ' + sourceClass + '">' + sourceLabel + '</span></div>';
-    
-    if (objective) {
-      html += '<div class="obj">🎯 ' + escapeHtml(objective) + '</div>';
-    } else {
-      html += '<div class="obj" style="border-color:var(--text2);color:var(--text2);font-style:italic">' + t('syncNoObj') + '</div>';
-    }
-    
-    if (routes.length > 0) {
-      html += '<div style="margin-bottom:8px"><span style="font-size:0.75rem;color:var(--text2)">' + t('syncRoutes') + ':</span> ';
-      routes.forEach(r => { html += '<span class="route-chip-sync">' + escapeHtml(r) + '</span> '; });
-      html += '</div>';
-    }
-    
-    if (steps.length > 0) {
-      html += '<div style="margin-bottom:6px"><span style="font-size:0.75rem;color:var(--text2)">📝 ' + plural(steps.length, t('syncSteps')).replace('{n}', steps.length) + '</span></div>';
-      steps.forEach((s, si) => {
-        const txt = s.text || s.description || '';
-        const hasAudio = s.audios && s.audios.length > 0;
-        const hasPhoto = s.photos && s.photos.length > 0;
-        html += '<div class="step-item"><b>' + (si + 1) + '.</b> ' + escapeHtml(txt);
-        if (hasAudio) html += ' <span style="font-size:0.7rem;color:var(--accent)">🎤</span>';
-        if (hasPhoto) html += ' <span style="font-size:0.7rem;color:var(--yellow)">📸</span>';
-        html += '</div>';
-      });
-    } else {
-      html += '<div style="font-size:0.8rem;color:var(--text2);margin:4px 0">' + t('syncNoSteps') + '</div>';
-    }
-    
-    if (errors) {
-      html += '<div class="error-box">⚠️ ' + escapeHtml(errors) + '</div>';
-    }
-    if (emails) {
-      html += '<div class="email-box">📧 ' + escapeHtml(emails) + '</div>';
-    }
-    
-    html += '</div>';
-  });
-  
-  el.innerHTML = html;
-}
-
-function plural(n, str) {
-  const parts = str.split('|');
-  return n === 1 ? parts[0] : (parts[1] || parts[0]);
 }
 
 // ─── IMPORT ───
